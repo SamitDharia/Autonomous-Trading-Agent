@@ -9,9 +9,8 @@ try {
   lean cloud backtest $ProjectName
   Write-Host "Submitted cloud backtest for project '$ProjectName'." -ForegroundColor Green
   Write-Host "List recent backtests:" -ForegroundColor Cyan
-  lean cloud backtests list
+  lean cloud backtest list
 }
 finally {
   Pop-Location
 }
-

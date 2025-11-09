@@ -67,8 +67,8 @@ class ProbRSISkeleton(QCAlgorithm):
         self.macd_expert = MACDExpert.load(self.ObjectStore, "models/macd_expert.json")
         self.trend_expert = TrendExpert.load(self.ObjectStore, "models/trend_expert.json")
 
-        # Load ensemble brain (placeholder averaging brain for now)
-        self.brain = Brain.load(self.ObjectStore, "models/brain.pkl")
+        # Load ensemble brain (JSON model; falls back to average if missing)
+        self.brain = Brain.load(self.ObjectStore, "models/brain.json")
 
         # Use the brain (ensemble) mapping by default now that loaders exist.
         self.use_brain = True

@@ -1,6 +1,6 @@
 Param(
-    [string]$ApiKey = "<PKUGWKLAZ7BI4WWKURNELSUEN4>",
-    [string]$SecretKey = "<GhE8PXttnEdYvqSnaserDZZHdnkGZ126zdrDTW6vKtRv>",
+    [Parameter(Mandatory=$true)] [string]$ApiKey,
+    [Parameter(Mandatory=$true)] [string]$SecretKey,
     [string]$BaseUrl = "https://paper-api.alpaca.markets"
 )
 $ErrorActionPreference = 'Stop'
