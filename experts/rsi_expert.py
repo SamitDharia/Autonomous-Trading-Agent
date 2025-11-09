@@ -1,37 +1,56 @@
 """
 RSI expert model interface.
 
-Provides `load` and `predict_proba` to be called from `algo.py`.
-The implementation will load a calibrated tiny model from QC Object Store.
+Loads a tiny logistic model from either QC Object Store or local file.
+Falls back to neutral 0.5 if unavailable.
 """
 
 from typing import Any, Dict
+import json
+from math import exp
+
+
+def _sigmoid(z: float) -> float:
+    try:
+        return 1.0 / (1.0 + exp(-z))
+    except OverflowError:
+        return 0.0 if z < 0 else 1.0
 
 
 class RSIExpert:
     def __init__(self, model: Any = None):
-        self._model = model
+        self._model = model or {"type": "logistic", "bias": 0.0, "weights": {}}
 
     @classmethod
     def load(cls, obj_store: Any, key: str) -> "RSIExpert":
-        """Load the expert model from the QuantConnect Object Store.
+        """Load the expert model from QC Object Store or local path.
 
-        Parameters
-        ----------
-        obj_store: Any
-            QC Object Store instance.
-        key: str
-            Storage key for the model artifact (e.g., 'models/rsi_expert.json').
+        key example: 'models/rsi_expert.json'
         """
-        # TODO: Implement actual load from QC Object Store.
-        model = None
-        return cls(model)
+        data = None
+        # Try QC Object Store first
+        if obj_store is not None:
+            try:
+                if obj_store.ContainsKey(key):
+                    raw = obj_store.ReadBytes(key)
+                    data = json.loads(raw.decode("utf-8"))
+            except Exception:
+                data = None
+        # Fallback to local file
+        if data is None:
+            try:
+                with open(key, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+            except Exception:
+                data = None
+        return cls(data)
 
     def predict_proba(self, features: Dict[str, float]) -> float:
-        """Return P(up in next 60 minutes) given feature dict.
-
-        Placeholder returns neutral 0.5 until trained model is wired.
-        """
-        # TODO: Use the calibrated model once available.
-        return 0.5
-
+        if not isinstance(self._model, dict) or self._model.get("type") != "logistic":
+            return 0.5
+        bias = float(self._model.get("bias", 0.0))
+        weights: Dict[str, float] = dict(self._model.get("weights", {}))
+        z = bias
+        for name, w in weights.items():
+            z += float(w) * float(features.get(name, 0.0))
+        return float(_sigmoid(z))

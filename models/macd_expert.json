@@ -1,0 +1,8 @@
+{
+  "type": "logistic",
+  "bias": 0.0,
+  "weights": {
+    "macd_hist": 1.2
+  }
+}
+

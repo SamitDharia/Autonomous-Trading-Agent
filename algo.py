@@ -70,9 +70,8 @@ class ProbRSISkeleton(QCAlgorithm):
         # Load ensemble brain (placeholder averaging brain for now)
         self.brain = Brain.load(self.ObjectStore, "models/brain.pkl")
 
-        # Until models are trained, default to simple RSI rule.
-        # Set to True later to switch to brain p->size trading.
-        self.use_brain = False
+        # Use the brain (ensemble) mapping by default now that loaders exist.
+        self.use_brain = True
 
         self.Debug("Initialized Phase 1 skeleton with indicators and RSI rule")
 

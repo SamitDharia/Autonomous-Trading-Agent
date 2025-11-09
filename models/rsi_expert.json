@@ -1,0 +1,9 @@
+{
+  "type": "logistic",
+  "bias": 0.0,
+  "weights": {
+    "rsi": -0.03,
+    "bb_z": 0.01
+  }
+}
+
