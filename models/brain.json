@@ -1,12 +1,11 @@
 {
   "type": "logistic",
-  "bias": 0.0,
+  "bias": -1.25811913971967,
   "weights": {
-    "experts.rsi": 0.4,
-    "experts.macd": 0.4,
-    "experts.trend": 0.2,
-    "regime.volatility": -0.5,
-    "regime.time_of_day": 0.0
+    "experts.rsi": 0.8464654775599182,
+    "experts.macd": 0.8328834010577131,
+    "experts.trend": 0.09032236187657125,
+    "regime.volatility": 0.11387910089594697,
+    "regime.time_of_day": 0.02248095289643867
   }
 }
-

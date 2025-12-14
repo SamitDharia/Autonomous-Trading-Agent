@@ -10,6 +10,7 @@ minimum hold time.
 
 from AlgorithmImports import *
 from datetime import timedelta, datetime
+import math
 from typing import Optional
 from experts.rsi_expert import RSIExpert
 from experts.macd_expert import MACDExpert
@@ -60,6 +61,8 @@ class ProbRSISkeleton(QCAlgorithm):
         self._tp_ticket: Optional[OrderTicket] = None
         self._start_of_day_equity = self.Portfolio.TotalPortfolioValue
         self._current_day = self.Time.date()
+        self._prev_rsi: Optional[float] = None
+        self._prev_macd: Optional[float] = None
 
         # Load tiny expert models from Object Store (placeholders for now)
         # In QC Cloud, pass self.ObjectStore and keys like 'models/rsi_expert.json'
@@ -70,8 +73,8 @@ class ProbRSISkeleton(QCAlgorithm):
         # Load ensemble brain (JSON model; falls back to average if missing)
         self.brain = Brain.load(self.ObjectStore, "models/brain.json")
 
-        # For now run RSI-only baseline (brain off) to sanity-check behaviour.
-        self.use_brain = False
+        # Default: brain on for backtests (strict gate/cap to limit trades).
+        self.use_brain = True
 
         self.Debug("Initialized Phase 1 skeleton with indicators and RSI rule")
 
@@ -98,22 +101,41 @@ class ProbRSISkeleton(QCAlgorithm):
 
         # Build a minimal features dict (for logging / future use)
         macd_hist = self.macd.Current.Value - self.macd.Signal.Current.Value if self.macd.Signal.IsReady else 0.0
+        macd_line = float(self.macd.Current.Value) if self.macd.IsReady else 0.0
+        macd_slope = macd_line - (self._prev_macd if self._prev_macd is not None else macd_line)
         price = bar.Close
         atr_value = float(self.atr.Current.Value)
         atr_pct = atr_value / price if price > 0 else 0.0
         bb_width = (self.bb.UpperBand.Current.Value - self.bb.LowerBand.Current.Value) if self.bb.IsReady else 0.0
         bb_mid = self.bb.MiddleBand.Current.Value if self.bb.IsReady else price
         bb_z = (price - bb_mid) / (0.5 * bb_width) if bb_width > 0 else 0.0
+        rsi_val = float(self.rsi.Current.Value)
+        rsi_slope = rsi_val - (self._prev_rsi if self._prev_rsi is not None else rsi_val)
+
+        # Trend relatives
+        ema20_val = float(self.ema20.Current.Value) if self.ema20.IsReady else price
+        ema50_val = float(self.ema50.Current.Value) if self.ema50.IsReady else price
+        ema200_val = float(self.ema200.Current.Value) if self.ema200.IsReady else price
+        ema20_rel = price / ema20_val - 1 if ema20_val else 0.0
+        ema50_rel = price / ema50_val - 1 if ema50_val else 0.0
+        ema200_rel = price / ema200_val - 1 if ema200_val else 0.0
+
+        # Time-of-day feature (matching brain loader expectation)
+        time_of_day = float(self.Time.hour + self.Time.minute / 60.0)
 
         features = {
-            "rsi": float(self.rsi.Current.Value),
+            "rsi": rsi_val,
+            "rsi_slope": float(rsi_slope),
+            "macd": macd_line,
+            "macd_sig": float(self.macd.Signal.Current.Value) if self.macd.Signal.IsReady else 0.0,
             "macd_hist": float(macd_hist),
+            "macd_slope": float(macd_slope),
             "atr": float(atr_value),
             "atr_pct": float(atr_pct),
             "bb_z": float(bb_z),
-            "ema20": float(self.ema20.Current.Value) if self.ema20.IsReady else price,
-            "ema50": float(self.ema50.Current.Value) if self.ema50.IsReady else price,
-            "ema200": float(self.ema200.Current.Value) if self.ema200.IsReady else price,
+            "ema20_rel": float(ema20_rel),
+            "ema50_rel": float(ema50_rel),
+            "ema200_rel": float(ema200_rel),
         }
 
         # Expert probabilities (placeholders until models are trained)
@@ -148,12 +170,13 @@ class ProbRSISkeleton(QCAlgorithm):
         # --- Phase 3: Brain p->size mapping ---
         regime = {
             "volatility": float(atr_pct),
-            "time_of_day": float(self.Time.hour + self.Time.minute / 60.0),
+            "time_of_day": time_of_day,
         }
         p = float(self.brain.predict_proba(expert_probs, regime))
         edge = abs(p - 0.5)
 
-        if edge < 0.20:
+        # Strict gate: require meaningful edge
+        if edge < 0.05:
             if invested and (self._last_entry_time is None or (self.Time - self._last_entry_time) >= self.min_hold):
                 self.Liquidate(self.symbol, tag="No edge; flatten")
                 self._cancel_brackets()
@@ -161,8 +184,8 @@ class ProbRSISkeleton(QCAlgorithm):
                 self._cancel_brackets()
             return
 
-        # Determine direction and size (capped at 0.15% equity, inversely scaled by ATR)
-        cap = 0.0015
+        # Determine direction and size (capped at 0.20% equity, inversely scaled by ATR)
+        cap = 0.0020
         size = size_from_prob(p, atr_pct=atr_pct, cap=cap)
         direction = 1
         target_value = self.Portfolio.TotalPortfolioValue * abs(size)
@@ -174,6 +197,10 @@ class ProbRSISkeleton(QCAlgorithm):
         if not invested:
             self._enter_with_bracket(direction, qty, price, atr_value)
             self._last_entry_time = self.Time
+
+        # track slopes for next bar
+        self._prev_rsi = rsi_val
+        self._prev_macd = macd_line
 
     # Helpers
     def _enter_with_bracket(self, direction: int, qty: int, price: float, atr: float) -> None:

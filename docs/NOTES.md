@@ -18,3 +18,14 @@ Running diary of decisions, rationale, and results. Keep entries concise and dat
 - Trained quick TSLA models (low AUC); decided to park them and keep RSI-only as champion.
 - Tightened brain path (edge 0.20, cap 0.15%, long-only), then turned brain off; RSI baseline uses bands 25/75, cap 0.25%, 30m hold.
 - Backtests now mostly flat/slightly down; plan to retrain models next week.
+
+## 2025-12-15
+- Chose workflow: QC for research/backtests/retraining only; live/paper runs locally (Lean CLI or standalone). Avoid QC live fees.
+- Standalone Alpaca bot (`scripts/alpaca_rsi_bot.py`) live path: RSI 25/75, 5m bars, cap 0.25%, 30m hold, ATR brackets 1x stop / 2x TP, CSV logging enabled.
+- Models (RSI/MACD/Trend/Brain) stored locally and in QC Object Store; brain remains off until retrained with better AUC vs RSI baseline.
+- Next retrain plan: use QC notebook to build 2018–2020+ TSLA set, include costs, train experts/brain, export JSONs, sync to local `models/`, then evaluate brain vs RSI before enabling.
+
+## 2025-12-14 (eve) – brain test runs
+- Trained updated models (2018–2022, cost-aware label, filters) but AUCs stayed ~0.50–0.52. JSONs updated in `models/`.
+- QC backtests with brain ON, edge 0.05–0.20 and cap 0.0015–0.0020 all lost money/flat; no clear edge. RSI baseline remains stronger.
+- Current QC code: brain ON, edge gate 0.05, cap 0.0020 (for testing). If blank backtest, loosen edge; if too many losing trades, tighten or set `use_brain=False` to revert to RSI baseline.

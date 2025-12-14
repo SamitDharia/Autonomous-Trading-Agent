@@ -37,7 +37,7 @@
             "can_comment": true,
             "can_create_discussion": true,
             "can_vote": true,
-            "Promotional Backtests": true
+            "Promotional Backtests": false
         },
         "email_verified": 1,
         "autocomplete_enabled": 1,
@@ -54,12 +54,12 @@
         "getStarted": {
             "createProject": true,
             "backtestProject": true,
-            "liveDeployProject": false,
-            "backtestCount": 1,
-            "projectCount": 2,
-            "projectCountNonBootcamp": 1,
-            "liveDeploymentsCount": 0,
-            "signupElapsedDays": 1.0075810185185186
+            "liveDeployProject": true,
+            "backtestCount": 39,
+            "projectCount": 5,
+            "projectCountNonBootcamp": 5,
+            "liveDeploymentsCount": 1,
+            "signupElapsedDays": 63.14706018518518
         },
         "forumSubscriber": 0
     },

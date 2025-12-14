@@ -1,30 +1,32 @@
-# Training the experts and brain (quick path)
+# Training the experts and brain (QC Research notebook)
 
-These steps are designed to be as simple as possible and run inside the QuantConnect Research notebook (no local setup required).
+Use QuantConnect only for research/retraining; keep live/paper local. This notebook flow lets you retrain and then copy the JSONs into your local `models/` folder.
 
-## What you’ll do
-1) Open a QC Research notebook.
-2) Copy/paste the code below to:
-   - Pull TSLA minute data.
-   - Resample to 5-minute bars.
-   - Build features and labels (60-minute forward return).
-   - Train tiny logistic experts (RSI, MACD, Trend) and a brain.
-   - Save JSON model files to `/Content/output/`.
-3) Download the JSONs and upload them to the QC Object Store.
+## Quick steps (repeatable)
+1) In QC, open the ATA project → add/open `research.ipynb`.
+2) Paste and run the code below (run all cells). It:
+   - Pulls TSLA minute data.
+   - Resamples to 5-minute bars.
+   - Builds richer features/labels (cost-aware 60-minute forward return).
+   - Trains tiny logistic experts (RSI, MACD, Trend) with simple C search, and the brain.
+   - Saves JSONs to `output/` and prints them so you can copy/paste into local files.
+3) Download from `output/` or copy the printed JSON blobs into your local `models/` files.
+4) Backtest locally or in QC with `use_brain=True` (edge gate ≥ 0.20, cap 0.15–0.25%, long-only). Promote only if it beats RSI after costs.
 
-## Notebook code (paste and run all)
+## Notebook code (paste and run)
 ```python
 import json
 import numpy as np
 import pandas as pd
 from pathlib import Path
+from datetime import datetime
 from sklearn.linear_model import LogisticRegression
-from sklearn.model_selection import train_test_split
 from sklearn.metrics import roc_auc_score
 
 qb = QuantBook()
 sym = qb.AddEquity("TSLA", Resolution.Minute).Symbol
-hist = qb.History(sym, start=datetime(2019,1,1), end=datetime(2020,1,1), resolution=Resolution.Minute)
+# extend history for more regimes
+hist = qb.History(sym, start=datetime(2018,1,1), end=datetime(2022,1,1), resolution=Resolution.Minute)
 
 # Resample to 5-minute
 df = hist.loc[sym].reset_index().rename(columns={"time":"timestamp"})
@@ -62,61 +64,115 @@ def atr(df, period=14):
     return tr.ewm(alpha=1/period, adjust=False).mean()
 
 close = df5["close"]
+ret1 = close.pct_change()
 ema20 = close.ewm(span=20, adjust=False).mean()
 ema50 = close.ewm(span=50, adjust=False).mean()
 ema200 = close.ewm(span=200, adjust=False).mean()
 rsi14 = rsi(close)
+rsi_slope = rsi14.diff()
 macd_line, macd_sig, macd_hist = macd(close)
+macd_slope = macd_line.diff()
 atr14 = atr(df5)
+atr_pct = atr14 / close
 bb_mid = close.rolling(20).mean()
 bb_std = close.rolling(20).std()
 bb_z = (close - bb_mid) / (2 * bb_std + 1e-9)
+vol20 = ret1.rolling(20).std()
+vol_z = (vol20 - vol20.rolling(100).mean()) / (vol20.rolling(100).std() + 1e-9)
+vol_z = vol_z.fillna(0)
+volm_z = (df5["volume"] - df5["volume"].rolling(20).mean()) / (df5["volume"].rolling(20).std() + 1e-9)
+volm_z = volm_z.fillna(0)
+time_of_day = df5.index.hour + df5.index.minute/60.0
 
 df_feat = pd.DataFrame({
     "rsi": rsi14,
+    "rsi_slope": rsi_slope,
     "macd": macd_line,
     "macd_sig": macd_sig,
     "macd_hist": macd_hist,
+    "macd_slope": macd_slope,
     "ema20": ema20,
     "ema50": ema50,
     "ema200": ema200,
+    "ema20_rel": close/ema20 - 1,
+    "ema50_rel": close/ema50 - 1,
+    "ema200_rel": close/ema200 - 1,
     "atr": atr14,
-    "atr_pct": atr14 / close,
+    "atr_pct": atr_pct,
     "bb_z": bb_z,
-    "tod": df5.index.hour + df5.index.minute/60.0,
+    "ret1": ret1,
+    "vol20": vol20,
+    "vol_z": vol_z,
+    "volm_z": volm_z,
+    "time_of_day": time_of_day,
 })
 
-# Label: 60-minute (12 bars) forward return > 0?
+# Filters: drop very noisy/illiquid bars
+df_feat = df_feat[(df_feat["atr_pct"] <= 0.02) & (df_feat["volm_z"] > -1) & (df_feat["volm_z"] < 5)]
+
+# Label: 60-minute forward net return > cost threshold (tougher)
 fwd = close.shift(-12)
 ret_fwd = (fwd - close) / close
-df_feat["label"] = (ret_fwd > 0).astype(int)
+cost_bps = 0.001  # 10 bps to approximate costs/slippage
+df_feat["label"] = (ret_fwd > cost_bps).astype(int)
 df_feat = df_feat.dropna()
 
 X = df_feat.drop(columns=["label"])
 y = df_feat["label"]
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, shuffle=False)
 
-def train_logit(features, target):
-    lr = LogisticRegression(max_iter=500, random_state=42)
-    lr.fit(features, target)
-    return lr
+# time-based split
+split_idx = int(len(X)*0.8)
+X_train, X_val = X.iloc[:split_idx], X.iloc[split_idx:]
+y_train, y_val = y.iloc[:split_idx], y.iloc[split_idx:]
+
+def best_logit(Xtr, ytr, Xvl, yvl, Cs=(0.05,0.1,0.5,1.0)):
+    best = None
+    best_auc = -1
+    for c in Cs:
+        lr = LogisticRegression(max_iter=500, random_state=42, C=c, penalty="l2")
+        lr.fit(Xtr, ytr)
+        p = lr.predict_proba(Xvl)[:,1]
+        auc = roc_auc_score(yvl.iloc[:len(p)], p)
+        if auc > best_auc:
+            best_auc = auc
+            best = lr
+    return best, best_auc
 
 # Train experts on small feature subsets
-rsi_feats = X_train[["rsi", "bb_z"]]
-macd_feats = X_train[["macd", "macd_sig", "macd_hist"]]
-trend_feats = X_train[["ema20", "ema50", "ema200"]]
+rsi_feats = ["rsi", "rsi_slope", "bb_z"]
+macd_feats = ["macd", "macd_sig", "macd_hist", "macd_slope"]
+trend_feats = ["ema20_rel", "ema50_rel", "ema200_rel"]
 
-rsi_clf = train_logit(rsi_feats, y_train)
-macd_clf = train_logit(macd_feats, y_train)
-trend_clf = train_logit(trend_feats, y_train)
+rsi_clf, rsi_auc = best_logit(X_train[rsi_feats], y_train, X_val[rsi_feats], y_val)
+macd_clf, macd_auc = best_logit(X_train[macd_feats], y_train, X_val[macd_feats], y_val)
+trend_clf, trend_auc = best_logit(X_train[trend_feats], y_train, X_val[trend_feats], y_val)
 
 # Brain input: expert probs + regime
-rsi_p = rsi_clf.predict_proba(rsi_feats)[:,1]
-macd_p = macd_clf.predict_proba(macd_feats)[:,1]
-trend_p = trend_clf.predict_proba(trend_feats)[:,1]
-regime = X_train[["atr_pct", "tod"]]
-brain_X = pd.DataFrame({"rsi": rsi_p, "macd": macd_p, "trend": trend_p, "volatility": regime["atr_pct"], "time_of_day": regime["tod"]})
-brain_clf = train_logit(brain_X, y_train.loc[brain_X.index])
+rsi_p_tr = rsi_clf.predict_proba(X_train[rsi_feats])[:,1]
+macd_p_tr = macd_clf.predict_proba(X_train[macd_feats])[:,1]
+trend_p_tr = trend_clf.predict_proba(X_train[trend_feats])[:,1]
+regime_tr = X_train[["atr_pct", "time_of_day"]]
+brain_tr = pd.DataFrame({
+    "rsi": rsi_p_tr,
+    "macd": macd_p_tr,
+    "trend": trend_p_tr,
+    "volatility": regime_tr["atr_pct"],
+    "time_of_day": regime_tr["time_of_day"],
+})
+
+rsi_p_va = rsi_clf.predict_proba(X_val[rsi_feats])[:,1]
+macd_p_va = macd_clf.predict_proba(X_val[macd_feats])[:,1]
+trend_p_va = trend_clf.predict_proba(X_val[trend_feats])[:,1]
+regime_va = X_val[["atr_pct", "time_of_day"]]
+brain_va = pd.DataFrame({
+    "rsi": rsi_p_va,
+    "macd": macd_p_va,
+    "trend": trend_p_va,
+    "volatility": regime_va["atr_pct"],
+    "time_of_day": regime_va["time_of_day"],
+})
+
+brain_clf, brain_auc = best_logit(brain_tr, y_train.loc[brain_tr.index], brain_va, y_val.loc[brain_va.index])
 
 def to_json(clf, feature_names):
     coef = clf.coef_[0]
@@ -124,38 +180,27 @@ def to_json(clf, feature_names):
     weights = {name: float(w) for name, w in zip(feature_names, coef)}
     return {"type": "logistic", "bias": bias, "weights": weights}
 
-rsi_json = to_json(rsi_clf, ["rsi", "bb_z"])
-macd_json = to_json(macd_clf, ["macd", "macd_sig", "macd_hist"])
-trend_json = to_json(trend_clf, ["ema20", "ema50", "ema200"])
+rsi_json = to_json(rsi_clf, rsi_feats)
+macd_json = to_json(macd_clf, macd_feats)
+trend_json = to_json(trend_clf, trend_feats)
 brain_json = to_json(brain_clf, ["experts.rsi", "experts.macd", "experts.trend", "regime.volatility", "regime.time_of_day"])
 
-out = Path("/Content/output")
+out = Path("output")
 out.mkdir(parents=True, exist_ok=True)
 (out / "rsi_expert.json").write_text(json.dumps(rsi_json, indent=2))
 (out / "macd_expert.json").write_text(json.dumps(macd_json, indent=2))
 (out / "trend_expert.json").write_text(json.dumps(trend_json, indent=2))
 (out / "brain.json").write_text(json.dumps(brain_json, indent=2))
 
-print("Saved models to /Content/output/*.json")
-feat_map = {
-    "RSI": ["rsi", "bb_z"],
-    "MACD": ["macd", "macd_sig", "macd_hist"],
-    "Trend": ["ema20", "ema50", "ema200"],
-}
-for name, clf_obj in [("RSI", rsi_clf), ("MACD", macd_clf), ("Trend", trend_clf)]:
-    feats = feat_map[name]
-    p = clf_obj.predict_proba(X_test[feats])[:,1]
-    print(name, "AUC", roc_auc_score(y_test.iloc[:len(p)], p))
-```
+print("Saved models to output/*.json")
+print("AUCs (val):", {"RSI": rsi_auc, "MACD": macd_auc, "Trend": trend_auc, "Brain_val_proxy": brain_auc})
 
-## Export and upload
-1) In the QC notebook file browser (left), download the four JSONs from `/Content/output/`.
-2) On your machine in `C:\Projects\Autonomous-Trading-Agent` run:
-   ```powershell
-   cd "qc org wkspc dir"
-   lean cloud object-store set "models/rsi_expert.json" "..\\models\\rsi_expert.json"
-   lean cloud object-store set "models/macd_expert.json" "..\\models\\macd_expert.json"
-   lean cloud object-store set "models/trend_expert.json" "..\\models\\trend_expert.json"
-   lean cloud object-store set "models/brain.json" "..\\models\\brain.json"
-   ```
-3) Re-run the QC web backtest (project “ATA”). With `self.use_brain = True`, it will now use your trained ensemble.
+# Print JSONs to copy/paste if you prefer not to download
+for fname, blob in [
+    ("rsi_expert.json", rsi_json),
+    ("macd_expert.json", macd_json),
+    ("trend_expert.json", trend_json),
+    ("brain.json", brain_json),
+]:
+    print(f"\n=== {fname} ===\n{json.dumps(blob, indent=2)}\n")
+```

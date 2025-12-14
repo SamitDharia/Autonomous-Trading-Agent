@@ -12,7 +12,8 @@
             "automaticCreditUsage": 0,
             "automaticCreditTopUp": 0,
             "creditTopUpMin": 500,
-            "creditTopUpAmount": 2000
+            "creditTopUpAmount": 2000,
+            "automaticAiUsage": 1
         },
         "subscriptions": [
             {
@@ -82,15 +83,15 @@
             },
             {
                 "name": "Lines",
-                "value": "0"
+                "value": "1,395"
             },
             {
                 "name": "Projects",
-                "value": "0"
+                "value": "5"
             },
             {
                 "name": "Backtests",
-                "value": "0"
+                "value": "36"
             },
             {
                 "name": "Members",
@@ -115,11 +116,11 @@
                     "name": "Community B-MICRO",
                     "sku": "B-MICRO",
                     "description": "1 CPU @ 3.0GHz, 7.8GB Ram",
-                    "usedBy": "samit dharia",
-                    "userProfile": "https://cdn.quantconnect.com/web/i/users/profile/f7683974105fa791760278516.jpg",
-                    "projectName": "Autonomous Trading Agent",
-                    "projectId": 25615691,
-                    "busy": true,
+                    "usedBy": "-",
+                    "userProfile": "",
+                    "projectName": "",
+                    "projectId": null,
+                    "busy": false,
                     "id": "BN-6f6a70927c3322782b410f299b0c806e",
                     "assets": 100,
                     "host": null,
@@ -138,11 +139,11 @@
                     "name": "Community R-MICRO",
                     "sku": "R-MICRO",
                     "description": "1 CPU @ 2.4GHz, 2GB Ram",
-                    "usedBy": "samit dharia",
-                    "userProfile": "https://cdn.quantconnect.com/web/i/users/profile/f7683974105fa791760278516.jpg",
-                    "projectName": "Autonomous Trading Agent",
-                    "projectId": 25615691,
-                    "busy": true,
+                    "usedBy": "-",
+                    "userProfile": "",
+                    "projectName": "",
+                    "projectId": null,
+                    "busy": false,
                     "id": "RN-b3180a8d3ffd94c2828afe77ac2af30a",
                     "assets": 100,
                     "host": null,
@@ -152,9 +153,9 @@
             "live": []
         },
         "environment": {
-            "files": 0,
-            "bytes": 0,
-            "size": "0 Bytes"
+            "files": 4,
+            "bytes": 968,
+            "size": "968 Bytes"
         },
         "data": {
             "signedTime": null,
@@ -209,24 +210,48 @@
         ],
         "objectStoreExportDerivative": false,
         "objectStoreHighestConsumers": [],
-        "objectStorageUsed": 0,
-        "objectStorageUsedHuman": "0 Bytes",
+        "objectStorageUsed": 968,
+        "objectStorageUsedHuman": "968 Bytes",
         "storageHighestConsumers": [
             {
-                "projectId": 25615691,
+                "projectId": 26781457,
                 "userName": "samit dharia",
                 "userProfile": "f7683974105fa791760278516.jpg",
-                "name": "Autonomous Trading Agent",
-                "storageUsed": 0,
-                "modified": "2025-10-13 14:25:44"
+                "name": "ATA",
+                "storageUsed": 30,
+                "modified": "2025-12-14 15:33:10"
             },
             {
-                "projectId": 25615738,
+                "projectId": 26112692,
                 "userName": "samit dharia",
                 "userProfile": "f7683974105fa791760278516.jpg",
-                "name": "Clone of Autonomous Trading Agent",
+                "name": "Jumping Yellow-Green Dinosaur",
+                "storageUsed": 10,
+                "modified": "2025-11-09 15:09:59"
+            },
+            {
+                "projectId": 26112453,
+                "userName": "samit dharia",
+                "userProfile": "f7683974105fa791760278516.jpg",
+                "name": "Clone of Piotroski F-Score Investing",
                 "storageUsed": 0,
-                "modified": "2025-10-13 14:22:12"
+                "modified": "2025-11-09 12:02:22"
+            },
+            {
+                "projectId": 26112492,
+                "userName": "samit dharia",
+                "userProfile": "f7683974105fa791760278516.jpg",
+                "name": "Clone of Piotroski F-Score Investing 1",
+                "storageUsed": 0,
+                "modified": "2025-11-09 12:20:59"
+            },
+            {
+                "projectId": 26781867,
+                "userName": "samit dharia",
+                "userProfile": "f7683974105fa791760278516.jpg",
+                "name": "Creative Yellow-Green Bear",
+                "storageUsed": 0,
+                "modified": "2025-12-14 10:21:27"
             }
         ],
         "members": [
@@ -239,7 +264,7 @@
                 "editable": false,
                 "support": null,
                 "linkedin": null,
-                "lastLoginTimestamp": "2025-10-13 14:25:42",
+                "lastLoginTimestamp": "2025-12-14 17:46:28",
                 "email": "smtdharia@gmail.com",
                 "profileUrl": "/u/samit-dharia",
                 "publicId": "samit-dharia",
@@ -314,7 +339,7 @@
         ],
         "alpha": null,
         "courses": {
-            "coursesCont": 10,
+            "coursesCont": 11,
             "enrolledMembers": 0,
             "completedTasks": 0,
             "courses": [
@@ -340,6 +365,14 @@
                     "authorName": "QuantConnect",
                     "thumbnail": "https://cdn.quantconnect.com/i/tu/qc-course-thumbnail-2x.webp",
                     "shortDescription": "Learn algorithmic trading with python for Futures. Guided strategy development in easily digestible portions.",
+                    "members": []
+                },
+                {
+                    "id": 4,
+                    "name": "Boot Camp 104 / Options",
+                    "authorName": "QuantConnect",
+                    "thumbnail": "https://cdn.quantconnect.com/i/tu/qc-course-thumbnail-2x.webp",
+                    "shortDescription": "Learn algorithmic trading with python for US Options. Strategy development in easily digestible portions.",
                     "members": []
                 },
                 {
@@ -405,7 +438,7 @@
         "billingFrequency": "monthly",
         "billingStatus": null,
         "billingPausedUntil": null,
-        "hasCardOnFile": false,
+        "hasCardOnFile": true,
         "joinOrganizationLink": "https://www.quantconnect.com/invite?t=organization&o=90ac77ba614d8ec40d273ab627e965c6&k=d41d0d1b2e763e1581d4b2879e8fcccae5270b72",
         "outOfSampleDays": 90,
         "trial": null,
@@ -414,15 +447,15 @@
         },
         "logs": {
             "limit": 10240,
-            "remaining": 3145728,
-            "dailyRemaining": 3145728,
+            "remaining": 2880016,
+            "dailyRemaining": 2880016,
             "dailyAllowance": 3145728
         },
         "downgradeScheduled": null,
         "userOrganizationStatistics": {
-            "storageUsed": 0,
+            "storageUsed": 40,
             "storageQuota": 2000,
-            "projectsCount": 1
+            "projectsCount": 5
         }
     },
     "success": true
