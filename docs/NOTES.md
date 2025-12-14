@@ -15,3 +15,6 @@ Running diary of decisions, rationale, and results. Keep entries concise and dat
 - Switched local/QC backtest asset to EURUSD (May 2014) to use bundled data.
 - Fixed Object Store Byte[] decoding in expert/brain loaders for QC cloud/Web IDE.
 - Ran QC Web IDE backtest successfully; small PnL, lots of trades due to simple RSI thresholds.
+- Trained quick TSLA models (low AUC); decided to park them and keep RSI-only as champion.
+- Tightened brain path (edge 0.20, cap 0.15%, long-only), then turned brain off; RSI baseline uses bands 25/75, cap 0.25%, 30m hold.
+- Backtests now mostly flat/slightly down; plan to retrain models next week.

@@ -50,8 +50,8 @@ class ProbRSISkeleton(QCAlgorithm):
         self.SetWarmUp(timedelta(days=30))
 
         # Risk and execution parameters
-        self.edge_size = 0.005  # 0.5% equity position target
-        self.min_hold = timedelta(minutes=15)
+        self.edge_size = 0.0025  # 0.25% equity position target (RSI baseline)
+        self.min_hold = timedelta(minutes=30)
         self.daily_stop = -0.01  # -1%
 
         # State
@@ -70,8 +70,8 @@ class ProbRSISkeleton(QCAlgorithm):
         # Load ensemble brain (JSON model; falls back to average if missing)
         self.brain = Brain.load(self.ObjectStore, "models/brain.json")
 
-        # Use the brain (ensemble) mapping by default now that loaders exist.
-        self.use_brain = True
+        # For now run RSI-only baseline (brain off) to sanity-check behaviour.
+        self.use_brain = False
 
         self.Debug("Initialized Phase 1 skeleton with indicators and RSI rule")
 
@@ -129,11 +129,11 @@ class ProbRSISkeleton(QCAlgorithm):
         if not self.use_brain:
             # --- Phase 1: Simple RSI rule ---
             rsi = features["rsi"]
-            if invested and rsi > 70:
+            if invested and rsi > 75:
                 if self._last_entry_time is None or (self.Time - self._last_entry_time) >= self.min_hold:
                     self.Liquidate(self.symbol, tag="RSI>70 exit")
                     self._cancel_brackets()
-            elif not invested and rsi < 30:
+            elif not invested and rsi < 25:
                 # Fixed ~0.5% equity position for the dummy rule
                 target_value = self.Portfolio.TotalPortfolioValue * self.edge_size
                 qty = int(target_value / max(price, 1e-6))
@@ -153,7 +153,7 @@ class ProbRSISkeleton(QCAlgorithm):
         p = float(self.brain.predict_proba(expert_probs, regime))
         edge = abs(p - 0.5)
 
-        if edge < 0.05:
+        if edge < 0.20:
             if invested and (self._last_entry_time is None or (self.Time - self._last_entry_time) >= self.min_hold):
                 self.Liquidate(self.symbol, tag="No edge; flatten")
                 self._cancel_brackets()
@@ -161,10 +161,10 @@ class ProbRSISkeleton(QCAlgorithm):
                 self._cancel_brackets()
             return
 
-        # Determine direction and size (capped at 1% equity, inversely scaled by ATR)
-        cap = 0.01
+        # Determine direction and size (capped at 0.15% equity, inversely scaled by ATR)
+        cap = 0.0015
         size = size_from_prob(p, atr_pct=atr_pct, cap=cap)
-        direction = 1 if size > 0 else -1
+        direction = 1
         target_value = self.Portfolio.TotalPortfolioValue * abs(size)
         qty = int(target_value / max(price, 1e-6))
 
