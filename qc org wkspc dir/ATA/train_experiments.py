@@ -1,22 +1,7 @@
-# Training the experts and brain (QC Research notebook)
+"""Training & experiment script mirroring docs/TRAINING.md updated workflow.
+Run in QuantConnect Research (QuantBook) or locally after exporting minute data as CSV.
+"""
 
-Use QuantConnect only for research/retraining; keep live/paper local. This notebook flow lets you retrain and then copy the JSONs into your local `models/` folder.
-
-## Quick steps (repeatable)
-1) In QC, open the ATA project → add/open `research.ipynb`.
-2) Paste and run the code below (run all cells). It:
-   - Pulls TSLA minute data.
-   - Resamples to 5-minute bars.
-   - Builds richer features/labels (cost-aware 60-minute forward return).
-   - Trains tiny logistic experts (RSI, MACD, Trend) with simple C search, and the brain.
-   - Saves JSONs to `output/` and prints them so you can copy/paste into local files.
-3) Download from `output/` or copy the printed JSON blobs into your local `models/` files.
-4) Backtest locally or in QC with `use_brain=True` (edge gate ≥ 0.20, cap 0.15–0.25%, long-only). Promote only if it beats RSI after costs.
-
-## Notebook code (paste and run)
-
-Note: I added `qc org wkspc dir/ATA/train_experiments.py` which mirrors this notebook and is runnable in QuantConnect Research (or locally after exporting minute data to `data/TSLA_1min.csv`). You can open that file in the QC Code Editor and run it directly, or paste this cell into `research.ipynb`.
-```python
 import json
 import numpy as np
 import pandas as pd
@@ -25,25 +10,52 @@ from datetime import datetime
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import roc_auc_score
 from sklearn.model_selection import TimeSeriesSplit
-import lightgbm as lgb
+from sklearn.inspection import permutation_importance
+from sklearn.utils import resample
+import matplotlib.pyplot as plt
 
-qb = QuantBook()
-sym = qb.AddEquity("TSLA", Resolution.Minute).Symbol
-# extend history for more regimes
-hist = qb.History(sym, start=datetime(2018,1,1), end=datetime(2022,1,1), resolution=Resolution.Minute)
+try:
+    import lightgbm as lgb
+    LGB_AVAILABLE = True
+except Exception:
+    LGB_AVAILABLE = False
 
-# Resample to 5-minute
-df = hist.loc[sym].reset_index().rename(columns={"time":"timestamp"})
-df = df.set_index("timestamp").sort_index()
-df5 = pd.DataFrame({
-    "open": df["open"].resample("5min").first(),
-    "high": df["high"].resample("5min").max(),
-    "low": df["low"].resample("5min").min(),
-    "close": df["close"].resample("5min").last(),
-    "volume": df["volume"].resample("5min").sum(),
-}).dropna()
+# QuantBook compatibility: if running inside QC Research, the QuantBook will be available.
+USE_QUANTBOOK = False
+try:
+    from QuantConnect import QuantBook  # type: ignore
+    qb = QuantBook()
+    USE_QUANTBOOK = True
+except Exception:
+    qb = None
 
-# Base indicators & helpers
+if USE_QUANTBOOK:
+    sym = qb.AddEquity("TSLA", Resolution.Minute).Symbol
+    hist = qb.History(sym, start=datetime(2018,1,1), end=datetime(2022,1,1), resolution=Resolution.Minute)
+    df = hist.loc[sym].reset_index().rename(columns={"time":"timestamp"})
+    df = df.set_index("timestamp").sort_index()
+    df5 = pd.DataFrame({
+        "open": df["open"].resample("5min").first(),
+        "high": df["high"].resample("5min").max(),
+        "low": df["low"].resample("5min").min(),
+        "close": df["close"].resample("5min").last(),
+        "volume": df["volume"].resample("5min").sum(),
+    }).dropna()
+else:
+    # Expect a local CSV named data/TSLA_1min.csv with 'timestamp,open,high,low,close,volume'
+    csv_path = Path("data/TSLA_1min.csv")
+    if not csv_path.exists():
+        raise RuntimeError("No QuantBook available and data/TSLA_1min.csv not found. Upload minute data or run in QC Research.")
+    df = pd.read_csv(csv_path, parse_dates=["timestamp"]).set_index("timestamp").sort_index()
+    df5 = pd.DataFrame({
+        "open": df["open"].resample("5min").first(),
+        "high": df["high"].resample("5min").max(),
+        "low": df["low"].resample("5min").min(),
+        "close": df["close"].resample("5min").last(),
+        "volume": df["volume"].resample("5min").sum(),
+    }).dropna()
+
+# Indicators
 
 def rsi(series, period=14):
     delta = series.diff()
@@ -54,6 +66,7 @@ def rsi(series, period=14):
     rs = roll_up / roll_down
     return 100 - (100 / (1 + rs))
 
+
 def macd(series, fast=12, slow=26, signal=9):
     ema_fast = series.ewm(span=fast, adjust=False).mean()
     ema_slow = series.ewm(span=slow, adjust=False).mean()
@@ -61,6 +74,7 @@ def macd(series, fast=12, slow=26, signal=9):
     sig = line.ewm(span=signal, adjust=False).mean()
     hist = line - sig
     return line, sig, hist
+
 
 def atr(df, period=14):
     hl = df["high"] - df["low"]
@@ -90,15 +104,15 @@ volm_z = (df5["volume"] - df5["volume"].rolling(20).mean()) / (df5["volume"].rol
 volm_z = volm_z.fillna(0)
 time_of_day = df5.index.hour + df5.index.minute/60.0
 
-# Add small, high-signal extras: lagged features and cyclical time encoding
+# Extras
 rsi_lag1 = rsi14.shift(1)
 rsi_lag2 = rsi14.shift(2)
 macd_slope_ewm = macd_line.ewm(span=5, adjust=False).mean().diff()
 time_sin = np.sin(2 * np.pi * time_of_day / 24.0)
 time_cos = np.cos(2 * np.pi * time_of_day / 24.0)
-overnight_ret = df5["open"].pct_change()  # crude proxy; keep for experiments
+overnight_ret = df5["open"].pct_change()
 
-# Consolidate features
+# Features
 df_feat = pd.DataFrame({
     "rsi": rsi14,
     "rsi_lag1": rsi_lag1,
@@ -128,22 +142,20 @@ df_feat = pd.DataFrame({
     "overnight_ret": overnight_ret,
 })
 
-# Filters: drop very noisy/illiquid bars
+# Filter
 df_feat = df_feat[(df_feat["atr_pct"] <= 0.02) & (df_feat["volm_z"] > -1) & (df_feat["volm_z"] < 5)]
 
-# Label: forward horizon (configurable) > cost threshold
-# We'll allow quick sweeps later; default to 60-min (12 * 5-min bars)
+# Label H=12 by default
 H = 12
-cost_bps = 0.001  # 10 bps
+cost_bps = 0.001
 fwd = close.shift(-H)
-ret_fwd = (fwd - close) / close
-
-# Drop rows with NaNs after adding lags
-df_feat["label"] = (ret_fwd > cost_bps).astype(int)
+df_feat["label"] = ( (fwd - close)/close > cost_bps ).astype(int)
 df_feat = df_feat.dropna()
 
-# Time-series CV helper
+X = df_feat.drop(columns=["label"])
+y = df_feat["label"]
 
+# CV helper
 def time_series_cv_auc(clf, X, y, n_splits=5):
     tscv = TimeSeriesSplit(n_splits=n_splits)
     aucs = []
@@ -155,32 +167,65 @@ def time_series_cv_auc(clf, X, y, n_splits=5):
         aucs.append(roc_auc_score(yte, p))
     return float(np.mean(aucs)), aucs
 
-# Quick experiment choice: Logistic for deployment; LightGBM for testing
-USE_LGBM = True
 
-# Feature subsets for tiny experts
+def purged_time_series_cv_auc(clf, X, y, n_splits=5, embargo=12):
+    """TimeSeriesSplit with a simple purge/embargo: remove training samples within `embargo` positions before test start."""
+    tscv = TimeSeriesSplit(n_splits=n_splits)
+    aucs = []
+    for train_idx, test_idx in tscv.split(X):
+        test_start = test_idx[0]
+        # purge training indices that are within embargo of test start
+        purged_train_idx = [i for i in train_idx if i < (test_start - embargo)]
+        if len(purged_train_idx) < 10:  # fallback to original if too little
+            purged_train_idx = train_idx
+        Xtr, Xte = X.iloc[purged_train_idx], X.iloc[test_idx]
+        ytr, yte = y.iloc[purged_train_idx], y.iloc[test_idx]
+        clf.fit(Xtr, ytr)
+        p = clf.predict_proba(Xte)[:, 1]
+        aucs.append(roc_auc_score(yte, p))
+    return float(np.mean(aucs)), aucs
+
+
+def bootstrap_auc(clf, X_train, y_train, X_test, y_test, n_boot=200):
+    """Bootstrap AUC on test set by resampling test indices with replacement."""
+    clf.fit(X_train, y_train)
+    p = clf.predict_proba(X_test)[:, 1]
+    base_auc = roc_auc_score(y_test, p)
+    aucs = []
+    idx = np.arange(len(y_test))
+    for _ in range(n_boot):
+        bs_idx = resample(idx, replace=True, n_samples=len(idx))
+        try:
+            aucs.append(roc_auc_score(y_test.iloc[bs_idx], p[bs_idx]))
+        except Exception:
+            continue
+    lower = np.percentile(aucs, 2.5) if aucs else np.nan
+    upper = np.percentile(aucs, 97.5) if aucs else np.nan
+    return base_auc, (lower, upper)
+
+# Run experiments
+USE_LGBM = LGB_AVAILABLE
 rsi_feats = ["rsi", "rsi_lag1", "rsi_lag2", "rsi_slope", "bb_z"]
 macd_feats = ["macd", "macd_sig", "macd_hist", "macd_slope", "macd_slope_ewm"]
 trend_feats = ["ema20_rel", "ema50_rel", "ema200_rel"]
 
-X = df_feat.drop(columns=["label"])
-y = df_feat["label"]
-
-# Build and evaluate experts with time-series CV
 if USE_LGBM:
     def mk_lgb():
         return lgb.LGBMClassifier(n_estimators=500, learning_rate=0.05, random_state=42)
-
     rsi_clf = mk_lgb()
     macd_clf = mk_lgb()
     trend_clf = mk_lgb()
 
-    rsi_mean_auc, rsi_fold_aucs = time_series_cv_auc(rsi_clf, X[rsi_feats], y)
-    macd_mean_auc, macd_fold_aucs = time_series_cv_auc(macd_clf, X[macd_feats], y)
-    trend_mean_auc, trend_fold_aucs = time_series_cv_auc(trend_clf, X[trend_feats], y)
+    rsi_mean_auc, _ = time_series_cv_auc(rsi_clf, X[rsi_feats], y)
+    macd_mean_auc, _ = time_series_cv_auc(macd_clf, X[macd_feats], y)
+    trend_mean_auc, _ = time_series_cv_auc(trend_clf, X[trend_feats], y)
 
-    # Fit on full training portion (80%) to produce expert probabilities for brain training
-    split_idx = int(len(X) * 0.8)
+    # Purged CV (embargo) check
+    rsi_purged_auc, _ = purged_time_series_cv_auc(rsi_clf, X[rsi_feats], y, n_splits=5, embargo=12)
+    macd_purged_auc, _ = purged_time_series_cv_auc(macd_clf, X[macd_feats], y, n_splits=5, embargo=12)
+    trend_purged_auc, _ = purged_time_series_cv_auc(trend_clf, X[trend_feats], y, n_splits=5, embargo=12)
+
+    split_idx = int(len(X)*0.8)
     X_tr_final, X_val_final = X.iloc[:split_idx], X.iloc[split_idx:]
     y_tr_final, y_val_final = y.iloc[:split_idx], y.iloc[split_idx:]
 
@@ -188,16 +233,13 @@ if USE_LGBM:
     macd_clf.fit(X_tr_final[macd_feats], y_tr_final, eval_set=[(X_val_final[macd_feats], y_val_final)], early_stopping_rounds=50, verbose=False)
     trend_clf.fit(X_tr_final[trend_feats], y_tr_final, eval_set=[(X_val_final[trend_feats], y_val_final)], early_stopping_rounds=50, verbose=False)
 
-    # Expert probs for brain
     rsi_p_tr = rsi_clf.predict_proba(X_tr_final[rsi_feats])[:, 1]
     macd_p_tr = macd_clf.predict_proba(X_tr_final[macd_feats])[:, 1]
     trend_p_tr = trend_clf.predict_proba(X_tr_final[trend_feats])[:, 1]
     rsi_p_va = rsi_clf.predict_proba(X_val_final[rsi_feats])[:, 1]
     macd_p_va = macd_clf.predict_proba(X_val_final[macd_feats])[:, 1]
     trend_p_va = trend_clf.predict_proba(X_val_final[trend_feats])[:, 1]
-
 else:
-    # Keep logistic path for reproducibility and JSON export
     rsi_clf = LogisticRegression(max_iter=1000, C=0.5, random_state=42)
     macd_clf = LogisticRegression(max_iter=1000, C=0.5, random_state=42)
     trend_clf = LogisticRegression(max_iter=1000, C=0.5, random_state=42)
@@ -205,6 +247,11 @@ else:
     rsi_mean_auc, _ = time_series_cv_auc(rsi_clf, X[rsi_feats], y)
     macd_mean_auc, _ = time_series_cv_auc(macd_clf, X[macd_feats], y)
     trend_mean_auc, _ = time_series_cv_auc(trend_clf, X[trend_feats], y)
+
+    # Purged CV check
+    rsi_purged_auc, _ = purged_time_series_cv_auc(rsi_clf, X[rsi_feats], y, n_splits=5, embargo=12)
+    macd_purged_auc, _ = purged_time_series_cv_auc(macd_clf, X[macd_feats], y, n_splits=5, embargo=12)
+    trend_purged_auc, _ = purged_time_series_cv_auc(trend_clf, X[trend_feats], y, n_splits=5, embargo=12)
 
     split_idx = int(len(X) * 0.8)
     X_tr_final, X_val_final = X.iloc[:split_idx], X.iloc[split_idx:]
@@ -221,7 +268,6 @@ else:
     macd_p_va = macd_clf.predict_proba(X_val_final[macd_feats])[:, 1]
     trend_p_va = trend_clf.predict_proba(X_val_final[trend_feats])[:, 1]
 
-# Brain input dataset
 regime_tr = X_tr_final[["atr_pct", "time_of_day"]]
 brain_tr = pd.DataFrame({
     "rsi": rsi_p_tr,
@@ -230,7 +276,6 @@ brain_tr = pd.DataFrame({
     "volatility": regime_tr["atr_pct"],
     "time_of_day": regime_tr["time_of_day"],
 })
-
 regime_va = X_val_final[["atr_pct", "time_of_day"]]
 brain_va = pd.DataFrame({
     "rsi": rsi_p_va,
@@ -240,23 +285,71 @@ brain_va = pd.DataFrame({
     "time_of_day": regime_va["time_of_day"],
 })
 
-# Fit a simple logistic brain on expert probs (time-series validated above)
 brain_clf = LogisticRegression(max_iter=1000, C=1.0, random_state=42)
 brain_clf.fit(brain_tr, y_tr_final)
 brain_p_va = brain_clf.predict_proba(brain_va)[:, 1]
 brain_auc = roc_auc_score(y_val_final.iloc[:len(brain_p_va)], brain_p_va)
 
+# Bootstrap AUC CI for brain (on validation set)
+brain_auc_base, brain_auc_ci = bootstrap_auc(brain_clf, brain_tr, y_tr_final, brain_va, y_val_final.iloc[:len(brain_p_va)])
+
 print("AUCs (time-series CV):", {"RSI": float(rsi_mean_auc), "MACD": float(macd_mean_auc), "Trend": float(trend_mean_auc), "Brain_val": float(brain_auc)})
 
-# Save logistic JSONs for deployment (convert only if logistic classifiers were used for experts/brain)
+# Feature importance (permutation) on validation set
+try:
+    imp = permutation_importance(rsi_clf if not USE_LGBM else rsi_clf, X_val_final[rsi_feats], y_val_final, n_repeats=20, random_state=42)
+    fi = sorted(zip(rsi_feats, imp.importances_mean), key=lambda x: -abs(x[1]))
+    print("RSI feature importances:", fi)
+except Exception as e:
+    print("Permutation importance failed:", e)
+
+# Expanded horizon/cost sweep
+results = []
+for H_try in (6, 12, 24, 48):
+    for cost_try in (0.001, 0.002, 0.005):
+        fwd_try = close.shift(-H_try)
+        y_try = ( (fwd_try - close)/close > cost_try ).astype(int).dropna()
+        common_idx = X.index.intersection(y_try.index)
+        Xs = X.loc[common_idx]
+        ys = y_try.loc[common_idx]
+        prevalence = ys.mean()
+        if len(ys) < 100:
+            continue
+        # Purged CV AUC on a simple logistic baseline for quick signal check
+        auc_purged, _ = purged_time_series_cv_auc(LogisticRegression(max_iter=1000), Xs[rsi_feats], ys, n_splits=5, embargo=H_try)
+        results.append({"H": H_try, "cost": cost_try, "prevalence": float(prevalence), "purged_auc": float(auc_purged)})
+
+res_df = pd.DataFrame(results)
+res_df.to_csv(Path("output") / "horizon_cost_sweep.csv", index=False)
+print("Saved horizon/cost sweep to output/horizon_cost_sweep.csv")
+
+# Save diagnostic plots: ROC curve for brain on validation
+try:
+    from sklearn.metrics import roc_curve
+    fpr, tpr, _ = roc_curve(y_val_final.iloc[:len(brain_p_va)], brain_p_va)
+    plt.figure()
+    plt.plot(fpr, tpr, label=f"Brain AUC={brain_auc:.3f}")
+    plt.plot([0,1],[0,1], linestyle='--', color='gray')
+    plt.xlabel('FPR')
+    plt.ylabel('TPR')
+    plt.title('Brain ROC (validation)')
+    plt.legend()
+    plt.savefig(Path("output") / "brain_roc.png")
+    plt.close()
+    print("Saved ROC plot to output/brain_roc.png")
+except Exception as e:
+    print("Failed to save ROC plot:", e)
+print("Purged AUCs:", {"RSI": float(rsi_purged_auc), "MACD": float(macd_purged_auc), "Trend": float(trend_purged_auc)})
+print(f"Brain AUC CI (bootstrapped 95%): {brain_auc_ci}")
+
+# Export logistic proxies if needed
+
 def to_json(clf, feature_names):
-    # Only works for linear models (logistic)
     coef = clf.coef_[0]
     bias = float(clf.intercept_[0])
     weights = {name: float(w) for name, w in zip(feature_names, coef)}
     return {"type": "logistic", "bias": bias, "weights": weights}
 
-# If experts are LGBM, we keep them for research but re-fit small logistic proxies for export
 if USE_LGBM:
     export_rsi = LogisticRegression(max_iter=1000, C=0.5, random_state=42).fit(X_tr_final[rsi_feats], y_tr_final)
     export_macd = LogisticRegression(max_iter=1000, C=0.5, random_state=42).fit(X_tr_final[macd_feats], y_tr_final)
@@ -278,30 +371,3 @@ out.mkdir(parents=True, exist_ok=True)
 (out / "brain.json").write_text(json.dumps(brain_json, indent=2))
 
 print("Saved models to output/*.json")
-print("AUCs (val):", {"RSI": float(rsi_mean_auc), "MACD": float(macd_mean_auc), "Trend": float(trend_mean_auc), "Brain_val": float(brain_auc)})
-
-# Optional quick sweep over horizons and cost thresholds
-for H_try in (6, 12, 24):
-    for cost_try in (0.001, 0.002, 0.005):
-        fwd_try = close.shift(-H_try)
-        y_try = ( (fwd_try - close)/close > cost_try ).astype(int).dropna()
-        common_idx = X.index.intersection(y_try.index)
-        Xs = X.loc[common_idx]
-        ys = y_try.loc[common_idx]
-        # simple single-split evaluation
-        split_idx = int(len(Xs)*0.8)
-        clf_tmp = LogisticRegression(max_iter=1000, random_state=42)
-        clf_tmp.fit(Xs.iloc[:split_idx][rsi_feats], ys.iloc[:split_idx])
-        p_tmp = clf_tmp.predict_proba(Xs.iloc[split_idx:][rsi_feats])[:,1]
-        auc_tmp = roc_auc_score(ys.iloc[split_idx:], p_tmp)
-        print(f"H={H_try}, cost={cost_try:.4f}, RSI proxy AUC={auc_tmp:.4f}")
-
-# Print JSONs so you can copy/paste into local models/
-for fname, blob in [
-    ("rsi_expert.json", rsi_json),
-    ("macd_expert.json", macd_json),
-    ("trend_expert.json", trend_json),
-    ("brain.json", brain_json),
-]:
-    print(f"\n=== {fname} ===\n{json.dumps(blob, indent=2)}\n")
-```
