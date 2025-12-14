@@ -1,0 +1,5 @@
+Launching analysis for 1227590145 with LEAN Engine v2.5.0.0
+2020-01-01 00:00:00 Initialized Phase 1 skeleton with indicators and RSI rule
+2019-12-02 00:00:00 Algorithm starting warm up...
+2020-01-02 10:00:00 Algorithm finished warming up.
+Algorithm Id:(1227590145) completed in 1.66 seconds at 0k data points per second. Processing total of 219 data points.

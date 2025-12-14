@@ -1,3 +1,8 @@
 {
-    "local-id": 618828070
+    "algorithm-language": "Python",
+    "local-id": 618828070,
+    "parameters": {},
+    "description": "Autonomous Trading Agent TSLA ensemble skeleton",
+    "organization-id": "90ac77ba614d8ec40d273ab627e965c6",
+    "cloud-id": 26781457
 }

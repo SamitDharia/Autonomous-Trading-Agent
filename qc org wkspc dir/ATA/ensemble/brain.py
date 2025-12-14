@@ -30,7 +30,8 @@ class Brain:
                     raw = obj_store.ReadBytes(key)
                     # accept both .pkl (ignored) and .json content as bytes
                     try:
-                        data = json.loads(raw.decode("utf-8"))
+                        raw_bytes = bytes(raw.ToArray()) if hasattr(raw, "ToArray") else bytes(raw)
+                        data = json.loads(raw_bytes.decode("utf-8"))
                     except Exception:
                         data = None
             except Exception:

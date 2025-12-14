@@ -81,3 +81,14 @@ algo.py                       # QuantConnect main algorithm (wires it all)
 
 On QuantConnect you can keep helpers inside `algo.py` to start. Upload the model files to QC Object Store and load them in `Initialize()`.
 
+## Current status (Dec 2025)
+- Skeleton algo runs end-to-end (indicators, brackets, daily stop, min hold). Brain disabled for trading (`use_brain = False`) so the RSI rule fires.
+- Local/QC Web IDE backtests currently use bundled EURUSD minute data (May 2014) for fast iteration; TSLA remains the target equity once ready.
+- Expert/brain JSON loaders work with QC Object Store (Byte[] fixed). Models are placeholders returning ~0.5; no real edge yet.
+
+## Next steps to full ensemble
+1) Train experts and brain offline: build features (RSI, MACD, EMAs, ATR, BB, regime), label 60-min forward returns, train/calibrate tiny models, save JSONs, upload to Object Store.
+2) Enable ensemble: set `use_brain = True`, keep edge threshold (|p-0.5| >= 0.05), cap size at 1% with ATR scaling, test locally/QC.
+3) Tune churn: adjust RSI/edge thresholds and size; ensure daily stop (-1%) respected; add guard for max concurrent positions (1).
+4) Return to TSLA: switch back to TSLA Minute, longer date range; include realistic costs and slippage in backtests.
+5) Paper trade on QC: use Alpaca Paper brokerage, tiny size, monitor a week; then consider live only after stable paper results.

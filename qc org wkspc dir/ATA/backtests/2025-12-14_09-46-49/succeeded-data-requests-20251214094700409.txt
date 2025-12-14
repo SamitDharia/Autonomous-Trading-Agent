@@ -1,0 +1,6 @@
+/forex/oanda/daily/eurusd.zip
+/forex/oanda/minute/eurusd/20140501_quote.zip
+/equity/usa/hour/spy.zip
+/forex/oanda/minute/eurusd/20140502_quote.zip
+/forex/oanda/minute/eurusd/20140504_quote.zip
+/forex/oanda/minute/eurusd/20140505_quote.zip

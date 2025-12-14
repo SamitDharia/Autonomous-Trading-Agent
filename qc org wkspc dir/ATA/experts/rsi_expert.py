@@ -33,7 +33,12 @@ class RSIExpert:
             try:
                 if obj_store.ContainsKey(key):
                     raw = obj_store.ReadBytes(key)
-                    data = json.loads(raw.decode("utf-8"))
+                    # QC returns a .NET Byte[]; convert robustly to Python bytes
+                    try:
+                        raw_bytes = bytes(raw.ToArray()) if hasattr(raw, "ToArray") else bytes(raw)
+                        data = json.loads(raw_bytes.decode("utf-8"))
+                    except Exception:
+                        data = None
             except Exception:
                 data = None
         # Fallback to local file

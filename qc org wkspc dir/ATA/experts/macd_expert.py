@@ -25,7 +25,11 @@ class MACDExpert:
             try:
                 if obj_store.ContainsKey(key):
                     raw = obj_store.ReadBytes(key)
-                    data = json.loads(raw.decode("utf-8"))
+                    try:
+                        raw_bytes = bytes(raw.ToArray()) if hasattr(raw, "ToArray") else bytes(raw)
+                        data = json.loads(raw_bytes.decode("utf-8"))
+                    except Exception:
+                        data = None
             except Exception:
                 data = None
         if data is None:

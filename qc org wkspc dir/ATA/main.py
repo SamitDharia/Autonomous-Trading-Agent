@@ -20,8 +20,9 @@ from risk.position_sizing import size_from_prob
 
 class ProbRSISkeleton(QCAlgorithm):
     def Initialize(self) -> None:
+        # Target TSLA per brief; adjust range as needed for testing/backtests
         self.SetStartDate(2020, 1, 1)
-        self.SetEndDate(2020, 1, 15)
+        self.SetEndDate(2020, 6, 30)
         self.SetCash(100000)
 
         self.symbol = self.AddEquity("TSLA", Resolution.Minute).Symbol
@@ -201,6 +202,6 @@ class ProbRSISkeleton(QCAlgorithm):
     def _cancel_brackets(self) -> None:
         for ticket in (self._stop_ticket, self._tp_ticket):
             if ticket is not None and ticket.Status in [OrderStatus.New, OrderStatus.Submitted, OrderStatus.PartiallyFilled]:
-                self.CancelOrder(ticket.OrderId)
+                self.Transactions.CancelOrder(ticket.OrderId)
         self._stop_ticket = None
         self._tp_ticket = None
