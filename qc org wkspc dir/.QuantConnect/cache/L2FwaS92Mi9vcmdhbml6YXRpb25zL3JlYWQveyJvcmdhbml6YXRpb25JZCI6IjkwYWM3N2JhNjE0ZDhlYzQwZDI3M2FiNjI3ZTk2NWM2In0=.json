@@ -83,7 +83,7 @@
             },
             {
                 "name": "Lines",
-                "value": "1,395"
+                "value": "1,673"
             },
             {
                 "name": "Projects",
@@ -91,7 +91,7 @@
             },
             {
                 "name": "Backtests",
-                "value": "36"
+                "value": "38"
             },
             {
                 "name": "Members",
@@ -219,7 +219,7 @@
                 "userProfile": "f7683974105fa791760278516.jpg",
                 "name": "ATA",
                 "storageUsed": 30,
-                "modified": "2025-12-14 15:33:10"
+                "modified": "2025-12-14 18:43:26"
             },
             {
                 "projectId": 26112692,
@@ -264,7 +264,7 @@
                 "editable": false,
                 "support": null,
                 "linkedin": null,
-                "lastLoginTimestamp": "2025-12-14 17:46:28",
+                "lastLoginTimestamp": "2025-12-15 17:12:56",
                 "email": "smtdharia@gmail.com",
                 "profileUrl": "/u/samit-dharia",
                 "publicId": "samit-dharia",
@@ -447,8 +447,8 @@
         },
         "logs": {
             "limit": 10240,
-            "remaining": 2880016,
-            "dailyRemaining": 2880016,
+            "remaining": 3124962,
+            "dailyRemaining": 3124962,
             "dailyAllowance": 3145728
         },
         "downgradeScheduled": null,

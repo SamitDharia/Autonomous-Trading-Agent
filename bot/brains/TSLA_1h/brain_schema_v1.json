@@ -1,0 +1,19 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Brain JSON v1",
+  "type": "object",
+  "required": ["brain_version","symbol","timeframe","trained_utc","feature_list","feature_hash","model","signal_definition","risk_profile","expected_stats"],
+  "properties": {
+    "brain_version": {"type":"string"},
+    "symbol": {"type":"string"},
+    "timeframe": {"type":"string"},
+    "trained_utc": {"type":"string","format":"date-time"},
+    "feature_list": {"type":"array","items":{"type":"string"}},
+    "feature_hash": {"type":"string"},
+    "scaler": {"type":"object"},
+    "model": {"type":"object"},
+    "signal_definition": {"type":"object"},
+    "risk_profile": {"type":"object"},
+    "expected_stats": {"type":"object"}
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "brain_version": "1.0",
+  "symbol": "TSLA",
+  "timeframe": "1h",
+  "trained_utc": "2025-12-14T00:00:00Z",
+  "feature_list": ["rsi","macd","bb_z","atr","ema20_rel","vol_z"],
+  "feature_hash": "TODO:compute_hash",
+  "scaler": {"type":"standard","mean":[],"std":[]},
+  "model": {"type":"logistic","params":{},"weights":{}},
+  "signal_definition": {"target":"next_N_bar_return","horizon_bars":3,"long_threshold":0.0025,"short_threshold":-0.0025,"no_trade_band":0.0010},
+  "risk_profile": {"vol_target":0.10,"max_risk_per_trade":0.002,"max_positions":1,"cooldown_minutes":60},
+  "expected_stats": {"backtest_sharpe":1.2,"max_dd":0.12,"win_rate":0.47,"profit_factor":1.25}
+}

@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 from pathlib import Path
 from datetime import datetime
+import hashlib
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import roc_auc_score
 from sklearn.model_selection import TimeSeriesSplit
@@ -371,3 +372,27 @@ out.mkdir(parents=True, exist_ok=True)
 (out / "brain.json").write_text(json.dumps(brain_json, indent=2))
 
 print("Saved models to output/*.json")
+# Export a runtime-friendly brain JSON (bot/brains/TSLA_1h/brain_latest.json)
+try:
+    feat_list = list(dict.fromkeys(rsi_feats + macd_feats + trend_feats))
+    fh = hashlib.sha256("|".join(feat_list).encode()).hexdigest()
+    runtime_brain = {
+        "brain_version": "1.0",
+        "symbol": "TSLA",
+        "timeframe": "1h",
+        "trained_utc": datetime.utcnow().isoformat() + "Z",
+        "feature_list": feat_list,
+        "feature_hash": fh,
+        "scaler": {},
+        "model": brain_json,
+        "signal_definition": {"target": "next_N_bar_return", "horizon_bars": H, "long_threshold": cost_bps, "short_threshold": -cost_bps, "no_trade_band": 0.001},
+        "risk_profile": {"vol_target": 0.1, "max_risk_per_trade": 0.002, "max_positions": 1, "cooldown_minutes": 60},
+        "expected_stats": {"backtest_sharpe": None}
+    }
+    bot_brain_dir = Path(__file__).resolve().parents[2].parent / "bot" / "brains" / "TSLA_1h"
+    bot_brain_dir.mkdir(parents=True, exist_ok=True)
+    (bot_brain_dir / f"brain_{datetime.utcnow().strftime('%Y-%m-%dT%H-%M')}.json").write_text(json.dumps(runtime_brain, indent=2))
+    (bot_brain_dir / "brain_latest.json").write_text(json.dumps(runtime_brain, indent=2))
+    print("Exported runtime brain to bot/brains/TSLA_1h/")
+except Exception as e:
+    print("Failed to export runtime brain:", e)
