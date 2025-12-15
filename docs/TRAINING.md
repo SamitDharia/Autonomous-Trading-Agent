@@ -13,6 +13,8 @@ Use QuantConnect only for research/retraining; keep live/paper local. This noteb
 3) Download from `output/` or copy the printed JSON blobs into your local `models/` files.
 4) Backtest locally or in QC with `use_brain=True` (edge gate ≥ 0.20, cap 0.15–0.25%, long-only). Promote only if it beats RSI after costs.
 
+Note: `train_experiments.py` additionally writes a runtime-ready brain to `bot/brains/TSLA_1h/brain_latest.json` and timestamps copies (see `bot/brains/TSLA_1h/brain_schema_v1.json`). The runtime loader (`bot/src/model/brain_loader.py`) validates the brain schema and checks feature hash parity.
+
 ## Notebook code (paste and run)
 
 Note: I added `qc org wkspc dir/ATA/train_experiments.py` which mirrors this notebook and is runnable in QuantConnect Research (or locally after exporting minute data to `data/TSLA_1min.csv`). You can open that file in the QC Code Editor and run it directly, or paste this cell into `research.ipynb`.
