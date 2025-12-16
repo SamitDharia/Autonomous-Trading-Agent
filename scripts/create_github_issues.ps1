@@ -1,13 +1,8 @@
 <#
 Create GitHub issues from docs/BACKLOG_ISSUES.md
 
-This is the canonical, idempotent script for importing prepared backlog items into GitHub.
-
-Usage:
-  - Dry-run (default): `.
-      .\scripts\create_github_issues.ps1`  # no changes are posted
-  - To actually post: `.
-      .\scripts\create_github_issues.ps1 -Post` (requires $env:GITHUB_TOKEN)
+This script is intentionally small and robust: it runs in DRY RUN mode by default (no token required) and will print the API payloads it
+would POST. To make changes, supply `-Post` and export a token in the runner environment as `$env:GITHUB_TOKEN`.
 #>
 
 param(
