@@ -100,7 +100,7 @@ foreach ($p in $parsed) {
   if ($Post -and $res) { Write-Host "Created: $($res.html_url)" -ForegroundColor Green } else { Write-Host "Prepared issue: $($p.title)" -ForegroundColor Green }
 }
 
-Write-Host "Done." -ForegroundColor Cyan
+Write-Host "Done. Rerun with -Post to actually create items (requires valid token and repo access)." -ForegroundColor Cyan
 <#
 Create GitHub issues from docs/BACKLOG_ISSUES.md
 
