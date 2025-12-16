@@ -1,7 +1,7 @@
 <#
 Create GitHub issues from docs/BACKLOG_ISSUES.md
 
-This script is intentionally small and robust: it runs in DRY RUN mode by default (no token required) and will print the API payloads it
+This script runs in DRY RUN mode by default (no token required) and will print the API payloads it
 would POST. To make changes, supply `-Post` and export a token in the runner environment as `$env:GITHUB_TOKEN`.
 #>
 
@@ -95,7 +95,7 @@ foreach ($p in $parsed) {
   if ($Post -and $res) { Write-Host "Created: $($res.html_url)" -ForegroundColor Green } else { Write-Host "Prepared issue: $($p.title)" -ForegroundColor Green }
 }
 
-Write-Host "Done." -ForegroundColor Cyan
+Write-Host "Done. Rerun with -Post to actually create items (requires valid token and repo access)." -ForegroundColor Cyan
 
 #########################################
 # Configuration
