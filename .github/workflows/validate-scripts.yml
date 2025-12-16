@@ -1,0 +1,19 @@
+name: Validate scripts
+
+on:
+  pull_request:
+  push:
+
+jobs:
+  validate-powershell:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run create_github_issues.ps1 (dry-run)
+        shell: pwsh
+        run: |
+          Write-Host "Running create_github_issues.ps1 in dry-run to validate parsing"
+          .\scripts\create_github_issues.ps1
+        env:
+          # do not fail if no token; script supports dry-run
+          CI: 'true'
