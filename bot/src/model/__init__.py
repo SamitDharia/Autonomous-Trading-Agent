@@ -1,1 +1,0 @@
-"""bot.src.model package"""

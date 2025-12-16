@@ -17,6 +17,8 @@ from experts.macd_expert import MACDExpert
 from experts.trend_expert import TrendExpert
 from ensemble.brain import Brain
 from risk.position_sizing import size_from_prob
+from features.feature_builder import build_features
+from risk.guards import daily_pnl_stop_hit, indicators_ready
 
 
 class ProbRSISkeleton(QCAlgorithm):
@@ -59,10 +61,9 @@ class ProbRSISkeleton(QCAlgorithm):
         self._last_entry_time: Optional[datetime] = None
         self._stop_ticket: Optional[OrderTicket] = None
         self._tp_ticket: Optional[OrderTicket] = None
+        # Daily P&L tracking (initialized by guards.daily_pnl_stop_hit on first call)
         self._start_of_day_equity = self.Portfolio.TotalPortfolioValue
         self._current_day = self.Time.date()
-        self._prev_rsi: Optional[float] = None
-        self._prev_macd: Optional[float] = None
 
         # Load tiny expert models from Object Store (placeholders for now)
         # In QC Cloud, pass self.ObjectStore and keys like 'models/rsi_expert.json'
@@ -80,65 +81,30 @@ class ProbRSISkeleton(QCAlgorithm):
 
     # Consolidated bar handler (5-minute)
     def _on_five_minute_bar(self, bar: TradeBar) -> None:
-        # Reset start-of-day equity at the beginning of each day
-        if self.Time.date() != self._current_day:
-            self._current_day = self.Time.date()
-            self._start_of_day_equity = self.Portfolio.TotalPortfolioValue
-
         # Safety: ensure indicators are ready and not warming up
         if self.IsWarmingUp:
             return
-        if not (self.rsi.IsReady and self.macd.IsReady and self.atr.IsReady and self.bb.IsReady):
+        if not indicators_ready(self.rsi, self.macd, self.atr, self.bb):
             return
 
-        # Daily P&L stop
-        pnl_today = (self.Portfolio.TotalPortfolioValue - self._start_of_day_equity) / max(1.0, self._start_of_day_equity)
-        if pnl_today <= self.daily_stop:
+        # Daily P&L stop check using guard function
+        if daily_pnl_stop_hit(self, threshold=self.daily_stop):
             if self.Portfolio.Invested:
                 self.Liquidate(self.symbol, tag="Daily stop hit")
                 self._cancel_brackets()
             return
 
-        # Build a minimal features dict (for logging / future use)
-        macd_hist = self.macd.Current.Value - self.macd.Signal.Current.Value if self.macd.Signal.IsReady else 0.0
-        macd_line = float(self.macd.Current.Value) if self.macd.IsReady else 0.0
-        macd_slope = macd_line - (self._prev_macd if self._prev_macd is not None else macd_line)
+        # Build features using dedicated function
+        features = build_features(self)
+        if not features:
+            # Indicators not ready yet
+            return
+
         price = bar.Close
         atr_value = float(self.atr.Current.Value)
         atr_pct = atr_value / price if price > 0 else 0.0
-        bb_width = (self.bb.UpperBand.Current.Value - self.bb.LowerBand.Current.Value) if self.bb.IsReady else 0.0
-        bb_mid = self.bb.MiddleBand.Current.Value if self.bb.IsReady else price
-        bb_z = (price - bb_mid) / (0.5 * bb_width) if bb_width > 0 else 0.0
-        rsi_val = float(self.rsi.Current.Value)
-        rsi_slope = rsi_val - (self._prev_rsi if self._prev_rsi is not None else rsi_val)
 
-        # Trend relatives
-        ema20_val = float(self.ema20.Current.Value) if self.ema20.IsReady else price
-        ema50_val = float(self.ema50.Current.Value) if self.ema50.IsReady else price
-        ema200_val = float(self.ema200.Current.Value) if self.ema200.IsReady else price
-        ema20_rel = price / ema20_val - 1 if ema20_val else 0.0
-        ema50_rel = price / ema50_val - 1 if ema50_val else 0.0
-        ema200_rel = price / ema200_val - 1 if ema200_val else 0.0
-
-        # Time-of-day feature (matching brain loader expectation)
-        time_of_day = float(self.Time.hour + self.Time.minute / 60.0)
-
-        features = {
-            "rsi": rsi_val,
-            "rsi_slope": float(rsi_slope),
-            "macd": macd_line,
-            "macd_sig": float(self.macd.Signal.Current.Value) if self.macd.Signal.IsReady else 0.0,
-            "macd_hist": float(macd_hist),
-            "macd_slope": float(macd_slope),
-            "atr": float(atr_value),
-            "atr_pct": float(atr_pct),
-            "bb_z": float(bb_z),
-            "ema20_rel": float(ema20_rel),
-            "ema50_rel": float(ema50_rel),
-            "ema200_rel": float(ema200_rel),
-        }
-
-        # Expert probabilities (placeholders until models are trained)
+        # Expert probabilities
         expert_probs = {
             "rsi": float(self.rsi_expert.predict_proba(features)),
             "macd": float(self.macd_expert.predict_proba(features)),
@@ -153,7 +119,7 @@ class ProbRSISkeleton(QCAlgorithm):
             rsi = features["rsi"]
             if invested and rsi > 75:
                 if self._last_entry_time is None or (self.Time - self._last_entry_time) >= self.min_hold:
-                    self.Liquidate(self.symbol, tag="RSI>70 exit")
+                    self.Liquidate(self.symbol, tag="RSI>75 exit")
                     self._cancel_brackets()
             elif not invested and rsi < 25:
                 # Fixed ~0.5% equity position for the dummy rule
@@ -170,7 +136,7 @@ class ProbRSISkeleton(QCAlgorithm):
         # --- Phase 3: Brain p->size mapping ---
         regime = {
             "volatility": float(atr_pct),
-            "time_of_day": time_of_day,
+            "time_of_day": features.get("time_of_day", 9.5),
         }
         p = float(self.brain.predict_proba(expert_probs, regime))
         edge = abs(p - 0.5)
@@ -197,10 +163,6 @@ class ProbRSISkeleton(QCAlgorithm):
         if not invested:
             self._enter_with_bracket(direction, qty, price, atr_value)
             self._last_entry_time = self.Time
-
-        # track slopes for next bar
-        self._prev_rsi = rsi_val
-        self._prev_macd = macd_line
 
     # Helpers
     def _enter_with_bracket(self, direction: int, qty: int, price: float, atr: float) -> None:

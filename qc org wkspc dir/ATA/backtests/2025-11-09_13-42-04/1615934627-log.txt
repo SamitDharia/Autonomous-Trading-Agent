@@ -1,6 +1,0 @@
-2019-12-02 00:00:00 Launching analysis for 1615934627 with LEAN Engine v2.5.0.0
-2019-12-02 00:00:00 Initialized Phase 1 skeleton with indicators and RSI rule
-2019-12-02 00:00:00 Accurate daily end-times now enabled by default. See more at https://qnt.co/3YHaWHL. To disable it and use legacy daily bars set self.settings.daily_precise_end_time = False.
-2019-12-02 00:00:00 Algorithm starting warm up...
-2020-01-02 11:00:00 Algorithm finished warming up.
-2020-01-15 16:00:00 Algorithm Id:(1615934627) completed in 1.16 seconds at 0k data points per second. Processing total of 219 data points.
