@@ -181,23 +181,7 @@ foreach ($b in $blocks) {
   }
 
   Write-Host "Done." -ForegroundColor Cyan
-  } else { $body = '' }
-  $labels = ($b -split "`n") | Where-Object { $_ -match '^Labels:' } | ForEach-Object { ($_ -replace '^Labels:\s*','').Trim() } | ForEach-Object { $_ -split ',' } | ForEach-Object { $_.Trim() } | Where-Object { $_ -ne '' }
-  if (-not $labels) { $labels = @('backlog') }
-  $parsed += @{ title = $title; body = $body; labels = $labels }
-}
 
-try { $msList = Invoke-RestMethod -Uri "$base/milestones?state=open" -Headers $headers -Method Get -ErrorAction Stop } catch { $msList = @() }
-$milestoneNumber = ($msList | Where-Object { $_.title -eq 'Backlog v1.0' }).number
-
-foreach ($p in $parsed) {
-  $payload = @{ title = $p.title; body = $p.body; labels = $p.labels; milestone = $milestoneNumber }
-  $res = Invoke-Api -Method Post -Url "$base/issues" -Body $payload
-  if ($Post -and $res) { Write-Host "Created: $($res.html_url)" -ForegroundColor Green }
-  else { Write-Host "Prepared issue: $($p.title)" -ForegroundColor Green }
-}
-
-Write-Host "Done." -ForegroundColor Cyan
 
 
 
