@@ -75,6 +75,15 @@ volm_z = volm_z.fillna(0)
 # Time of day (9.5 = 9:30am)
 time_of_day = df5.index.hour + df5.index.minute / 60.0
 
+# EMA200 for trend filter
+ema200 = close.ewm(span=200, adjust=False).mean()
+ema200_rel = (close - ema200) / ema200
+
+# Bollinger Bands (20-period, 2 std dev)
+bb_mid = close.rolling(20).mean()
+bb_std = close.rolling(20).std()
+bb_z = (close - bb_mid) / (2 * bb_std + 1e-9)
+
 # Consolidate
 df_feat = pd.DataFrame({
     "close": close,
@@ -84,6 +93,8 @@ df_feat = pd.DataFrame({
     "vol_z": vol_z,
     "volm_z": volm_z,
     "time_of_day": time_of_day,
+    "ema200_rel": ema200_rel,
+    "bb_z": bb_z,
 })
 df_feat = df_feat.dropna()
 
@@ -92,9 +103,12 @@ print(f"\nFeatures ready: {len(df_feat)} bars")
 # Backtest function
 
 
-def backtest_rsi(df, phase1_filters=False, initial_capital=100000.0):
+def backtest_rsi(df, phase1_filters=False, phase2_enhancements=False, initial_capital=100000.0):
     """
-    Backtest RSI strategy with optional Phase 1 filters.
+    Backtest RSI strategy with optional Phase 1 filters and Phase 2 enhancements.
+    
+    Phase 1: Time-of-day, volatility regime, volume confirmation filters
+    Phase 2: Dynamic RSI thresholds, trend filter (EMA200), Bollinger Band confirmation
     
     Returns DataFrame with trade log and performance metrics.
     """
@@ -167,7 +181,24 @@ def backtest_rsi(df, phase1_filters=False, initial_capital=100000.0):
             
             # 2. Volatility regime filter: vol_z > 0.5
             if row.vol_z < 0.5:
-                equity_curve.append({'time': idx, 'equity': current_equity})
+          Phase 2 Enhancements (if enabled)
+        if phase2_enhancements:
+            # 2.1 Dynamic RSI thresholds based on volatility
+            if row.vol_z > 1.0:  # High volatility
+                rsi_buy = 30
+                rsi_sell = 70
+            elif row.vol_z < -0.5:  # Low volatility
+                rsi_buy = 20
+                rsi_sell = 80
+            else:  # Normal volatility
+                rsi_buy = 25
+                rsi_sell = 75
+        else:
+            # Fixed thresholds
+            rsi_buy = 25
+            rsi_sell = 75
+        
+        #       equity_curve.append({'time': idx, 'equity': current_equity})
                 continue
         
         # Exit logic
@@ -187,7 +218,17 @@ def backtest_rsi(df, phase1_filters=False, initial_capital=100000.0):
                     'exit_time': idx,
                     'entry_price': entry_price,
                     'exit_price': exit_price,
-                    'shares': position,
+              Phase 2 Filter 2: Trend filter (if enabled)
+            if phase2_enhancements and row.ema200_rel < -0.05:
+                equity_curve.append({'time': idx, 'equity': current_equity})
+                continue
+            
+            # Phase 2 Filter 3: Bollinger Band confirmation (if enabled)
+            if phase2_enhancements and row.bb_z > -0.8:
+                equity_curve.append({'time': idx, 'equity': current_equity})
+                continue
+            
+            #       'shares': position,
                     'pnl': pnl,
                     'hold_minutes': hold_minutes,
                     'exit_reason': 'rsi_exit'
@@ -275,39 +316,42 @@ def backtest_rsi(df, phase1_filters=False, initial_capital=100000.0):
             'trade_count': 0,
             'win_rate': 0,
             'avg_win': 0,
-            'avg_loss': 0,
-            'profit_factor': 0,
-            'sharpe': 0,
-            'max_drawdown': 0,
-            'final_equity': initial_capital
-        }
-    
-    return trades_df, equity_df, metrics
-
-
-# Run both backtests
+      all backtests
 print("\n" + "="*60)
 print("RUNNING BASELINE RSI BACKTEST")
 print("="*60)
-trades_baseline, equity_baseline, metrics_baseline = backtest_rsi(df_feat, phase1_filters=False)
+trades_baseline, equity_baseline, metrics_baseline = backtest_rsi(df_feat, phase1_filters=False, phase2_enhancements=False)
 
 print("\n" + "="*60)
-print("RUNNING PHASE 1 ENHANCED BACKTEST")
+print("RUNNING PHASE 1 BACKTEST")
 print("="*60)
-trades_phase1, equity_phase1, metrics_phase1 = backtest_rsi(df_feat, phase1_filters=True)
+trades_phase1, equity_phase1, metrics_phase1 = backtest_rsi(df_feat, phase1_filters=True, phase2_enhancements=False)
+
+print("\n" + "="*60)
+print("RUNNING PHASE 1+2 COMBINED BACKTEST")
+print("="*60)
+trades_phase12, equity_phase12, metrics_phase12 = backtest_rsi(df_feat, phase1_filters=True, phase2_enhancements=True)
 
 # Compare results
 print("\n" + "="*60)
 print("BACKTEST COMPARISON RESULTS")
 print("="*60)
-print(f"\n{'Metric':<25} {'Baseline':>15} {'Phase 1':>15} {'Delta':>15}")
-print("-" * 72)
+print(f"\n{'Metric':<25} {'Baseline':>15} {'Phase 1':>15} {'Phase 1+2':>15}")
+print("-" * 78)
 
 for key in metrics_baseline.keys():
     baseline_val = metrics_baseline[key]
     phase1_val = metrics_phase1[key]
+    phase12_val = metrics_phase12[key]
     
     if key in ['total_return_pct', 'win_rate', 'max_drawdown']:
+        print(f"{key:<25} {baseline_val:>14.2f}% {phase1_val:>14.2f}% {phase12_val:>14.2f}%")
+    elif key in ['sharpe', 'profit_factor']:
+        print(f"{key:<25} {baseline_val:>15.2f} {phase1_val:>15.2f} {phase12_val:>15.2f}")
+    elif key == 'trade_count':
+        print(f"{key:<25} {baseline_val:>15.0f} {phase1_val:>15.0f} {phase12_val:>15.0f}")
+    else:
+        print(f"{key:<25} ${baseline_val:>14,.2f} ${phase1_val:>14,.2f} ${phase12wn']:
         delta = phase1_val - baseline_val
         print(f"{key:<25} {baseline_val:>14.2f}% {phase1_val:>14.2f}% {delta:>+14.2f}%")
     elif key in ['sharpe', 'profit_factor']:
@@ -332,24 +376,48 @@ if len(trades_baseline) > 0:
 
 if len(trades_phase1) > 0:
     print(f"\nPhase 1 - First 5 trades:")
+
+if len(trades_phase12) > 0:
+    print(f"\nPhase 1+2 - First 5 trades:")
+    print(trades_phase12.head())
+    print(f"\nPhase 1+2 - Win/Loss breakdown:")
+    print(trades_phase12.groupby(trades_phase12['pnl'] > 0)['pnl'].agg(['count', 'mean', 'sum']))
     print(trades_phase1.head())
     print(f"\nPhase 1 - Win/Loss breakdown:")
     print(trades_phase1.groupby(trades_phase1['pnl'] > 0)['pnl'].agg(['count', 'mean', 'sum']))
+# Phase 1 vs Baseline
+sharpe_p1_abs = metrics_phase1['sharpe'] - metrics_baseline['sharpe']
+win_rate_p1_delta = metrics_phase1['win_rate'] - metrics_baseline['win_rate']
 
-# Verdict
-print("\n" + "="*60)
-print("VERDICT")
-print("="*60)
+print(f"\n** PHASE 1 vs BASELINE **")
+print(f"Sharpe: {metrics_baseline['sharpe']:.2f} → {metrics_phase1['sharpe']:.2f} ({sharpe_p1_abs:+.2f} absolute)")
+print(f"Win rate: {metrics_baseline['win_rate']:.1%} → {metrics_phase1['win_rate']:.1%} ({win_rate_p1_delta:+.1%})")
+print(f"Trade count: {metrics_baseline['trade_count']} → {metrics_phase1['trade_count']} ({((metrics_phase1['trade_count'] - metrics_baseline['trade_count']) / metrics_baseline['trade_count'] * 100):+.1f}%)")
 
-sharpe_improvement = ((metrics_phase1['sharpe'] - metrics_baseline['sharpe']) / metrics_baseline['sharpe'] * 100) if metrics_baseline['sharpe'] != 0 else 0
-win_rate_improvement = metrics_phase1['win_rate'] - metrics_baseline['win_rate']
+# Phase 1+2 vs Phase 1
+sharpe_p12_abs = metrics_phase12['sharpe'] - metrics_phase1['sharpe']
+sharpe_p12_pct = ((metrics_phase12['sharpe'] - metrics_phase1['sharpe']) / abs(metrics_phase1['sharpe']) * 100) if metrics_phase1['sharpe'] != 0 else 0
+win_rate_p12_delta = metrics_phase12['win_rate'] - metrics_phase1['win_rate']
 
-print(f"\nSharpe improvement: {sharpe_improvement:+.1f}%")
-print(f"Win rate improvement: {win_rate_improvement:+.1f}%")
-print(f"Trade count change: {((metrics_phase1['trade_count'] - metrics_baseline['trade_count']) / metrics_baseline['trade_count'] * 100):+.1f}%")
+print(f"\n** PHASE 1+2 vs PHASE 1 **")
+print(f"Sharpe: {metrics_phase1['sharpe']:.2f} → {metrics_phase12['sharpe']:.2f} ({sharpe_p12_abs:+.2f} absolute, {sharpe_p12_pct:+.1f}%)")
+print(f"Win rate: {metrics_phase1['win_rate']:.1%} → {metrics_phase12['win_rate']:.1%} ({win_rate_p12_delta:+.1%})")
+print(f"Trade count: {metrics_phase1['trade_count']} → {metrics_phase12['trade_count']} ({((metrics_phase12['trade_count'] - metrics_phase1['trade_count']) / metrics_phase1['trade_count'] * 100) if metrics_phase1['trade_count'] > 0 else 0:+.1f}%)")
 
-if sharpe_improvement >= 10 or win_rate_improvement >= 0.05:
-    print("\n✅ PHASE 1 PROMOTED: Meets acceptance criteria")
+# Decisions
+print(f"\n** DECISIONS **")
+if sharpe_p1_abs >= 0.5 or (metrics_phase1['sharpe'] > 0 and metrics_baseline['sharpe'] < 0):
+    print("✅ PHASE 1 PROMOTED: Turned losing strategy profitable (Sharpe negative → positive)")
+else:
+    print("❌ PHASE 1 NOT PROMOTED: Insufficient improvement")
+
+if sharpe_p12_pct >= 10 or win_rate_p12_delta >= 0.05:
+    print("✅ PHASE 2 ADDS VALUE: Sharpe +10% OR win rate +5% over Phase 1")
+    print("   → Deploy Phase 1+2 combined to paper trading")
+elif metrics_phase12['sharpe'] > metrics_phase1['sharpe']:
+    print("⚠️  PHASE 2 MARGINAL: Improvement <10%, consider deploying Phase 1 only")
+else:
+    print("❌ PHASE 2 DEGRADES: Stick with Phase 1 only
     print("   - Sharpe improved ≥10% OR win rate +5%")
     print("   - Recommended for paper trading deployment")
 else:

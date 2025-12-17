@@ -115,7 +115,7 @@ class ProbRSISkeleton(QCAlgorithm):
         invested = self.Portfolio[self.symbol].Invested
 
         if not self.use_brain:
-            # --- RSI Baseline with Phase 1 Enhancements ---
+            # --- RSI Baseline with Phase 1 + Phase 2 Enhancements ---
             rsi = features["rsi"]
             
             # PHASE 1 FILTERS: Quality over quantity
@@ -145,27 +145,55 @@ class ProbRSISkeleton(QCAlgorithm):
                     self._cancel_brackets()
                 return
             
+            # PHASE 2 ENHANCEMENTS: Dynamic logic
+            
+            # 2.1 Dynamic RSI Thresholds based on volatility
+            if vol_regime > 1.0:  # High volatility
+                rsi_buy = 30   # Loosen threshold (price moves faster)
+                rsi_sell = 70
+            elif vol_regime < -0.5:  # Low volatility
+                rsi_buy = 20   # Tighten (only extreme signals)
+                rsi_sell = 80
+            else:  # Normal volatility
+                rsi_buy = 25
+                rsi_sell = 75
+            
             # Exit Logic (always enabled)
-            if invested and rsi > 75:
+            if invested and rsi > rsi_sell:
                 if self._last_entry_time is None or (self.Time - self._last_entry_time) >= self.min_hold:
-                    self.Liquidate(self.symbol, tag="RSI>75 exit")
+                    self.Liquidate(self.symbol, tag=f"RSI>{rsi_sell} exit")
                     self._cancel_brackets()
             
-            # Entry Logic with Filters
-            elif not invested and rsi < 25:
+            # Entry Logic with Phase 1 + Phase 2 Filters
+            elif not invested and rsi < rsi_buy:
                 # 1.3 Volume Confirmation: Require volume spike for entry
                 volm_z = features.get("volm_z", 0.0)
-                if volm_z > 1.0:  # Volume > 1 std dev above average
-                    # All filters passed - enter position
-                    target_value = self.Portfolio.TotalPortfolioValue * self.edge_size
-                    qty = int(target_value / max(price, 1e-6))
-                    if qty > 0:
-                        self._enter_with_bracket(direction=1, qty=qty, price=price, atr=atr_value)
-                        self._last_entry_time = self.Time
-                        self.Debug(f"Phase 1 Entry: RSI={rsi:.1f}, vol_z={vol_regime:.2f}, volm_z={volm_z:.2f}")
-                else:
+                if volm_z < 1.0:
                     # Volume too low, skip entry
-                    self.Debug(f"Skip entry: RSI={rsi:.1f} but volm_z={volm_z:.2f} < 1.0")
+                    self.Debug(f"Skip: RSI={rsi:.1f}<{rsi_buy} but volm_z={volm_z:.2f}<1.0")
+                    return
+                
+                # 2.2 Trend Filter: Don't catch falling knives
+                ema200_rel = features.get("ema200_rel", 0.0)
+                if ema200_rel < -0.05:  # Price >5% below EMA200
+                    # Strong downtrend, skip long entry
+                    self.Debug(f"Skip: RSI={rsi:.1f}<{rsi_buy} but strong downtrend (EMA200 {ema200_rel:.2%})")
+                    return
+                
+                # 2.3 Bollinger Band Confirmation: Double oversold confirmation
+                bb_z = features.get("bb_z", 0.0)
+                if bb_z > -0.8:  # Price not near lower Bollinger Band
+                    # RSI extreme but price not at BB (weaker signal)
+                    self.Debug(f"Skip: RSI={rsi:.1f}<{rsi_buy} but bb_z={bb_z:.2f}>-0.8")
+                    return
+                
+                # All Phase 1 + Phase 2 filters passed - enter position
+                target_value = self.Portfolio.TotalPortfolioValue * self.edge_size
+                qty = int(target_value / max(price, 1e-6))
+                if qty > 0:
+                    self._enter_with_bracket(direction=1, qty=qty, price=price, atr=atr_value)
+                    self._last_entry_time = self.Time
+                    self.Debug(f"Phase 1+2 Entry: RSI={rsi:.1f}, vol_z={vol_regime:.2f}, volm_z={volm_z:.2f}, ema200_rel={ema200_rel:.2%}, bb_z={bb_z:.2f}")
 
             if not self.Portfolio.Invested:
                 self._cancel_brackets()
