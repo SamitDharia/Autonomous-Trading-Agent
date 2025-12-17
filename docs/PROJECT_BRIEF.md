@@ -89,17 +89,18 @@ algo.py                       # QuantConnect main algorithm (wires it all)
 On QuantConnect you can keep helpers inside `algo.py` to start. Upload the model files to QC Object Store and load them in `Initialize()`.
 
 ## Current status (Dec 2025)
-- Skeleton algo runs end-to-end (indicators, brackets, daily stop, min hold). Brain disabled for trading (`use_brain = False`) so the RSI rule fires.
-- Local/QC Web IDE backtests currently use bundled EURUSD minute data (May 2014) for fast iteration; TSLA remains the target equity once ready.
-- Expert/brain JSON loaders work with QC Object Store (Byte[] fixed). Quick TSLA models have low AUC; brain is parked. RSI-only is the current champion (enter RSI<25, exit RSI>75, cap 0.25%, 30m hold).
+- **Brain retraining completed**: Tested multiple configurations (H=6/12/24, 2018-2024 data, LightGBM 800 trees). Result: AUC 0.50-0.52 (coin-flip). **Decision: Keep RSI baseline as champion** - brain has no predictive edge over simple mean-reversion.
+- **RSI baseline Phase 1 enhancements in progress**: Implemented time-of-day filter (10:00-15:30), volume confirmation (volm_z > 1.0), volatility regime (vol_z > 0.5). Next: backtest comparison (2020-2024 TSLA) to measure impact.
+- Skeleton algo runs end-to-end (indicators, brackets, daily stop, min hold). Brain path remains in code but disabled (`use_brain = False`).
 - Live/paper is run locally via `scripts/alpaca_rsi_bot.py` (5m bars, RSI 25/75, ATR brackets 1x/2x, cap 0.25%, 30m hold). CSV logging to `alpaca_rsi_log.csv`.
-- QC backtests with brain ON (latest models, edge 0.05–0.20, cap 0.0015–0.0020) have lost money/flat; AUC remains ~0.50–0.52. Brain not promoted.
+- Models archived in `models/*.json` for reference. Focus shifted from ML prediction to RSI strategy optimization.
 
-## Next steps to full ensemble
-1) Retrain experts and brain on longer TSLA history (e.g., 2018–2020+): build features/labels (60-min forward, include costs), train/calibrate models, save JSONs, upload to Object Store, and sync to local `models/`.
-2) Re-enable ensemble: `use_brain = True`, strict edge gate (start with |p-0.5| >= 0.20+), cap 0.15–0.25%, long-only unless edge improves.
-3) Compare against RSI champion; promote brain only if it beats RSI after costs.
-4) Keep QC for research/backtests; run live/paper locally (Lean CLI or standalone Alpaca script) to avoid QC live fees.
+## Next steps (RSI optimization focus)
+1) **Phase 1 backtest comparison** (Week 4): Run 2020-2024 TSLA backtest comparing baseline RSI vs. Phase 1 enhanced (time/volume/volatility filters). Target: +10-20% Sharpe improvement.
+2) **Phase 2 implementation** (Week 5): Add dynamic RSI thresholds (volatility-adaptive), trend filter (EMA200), Bollinger Band confirmation. Backtest each enhancement individually.
+3) **Paper trading certification** (Week 5-6): Deploy best-performing RSI variant to Alpaca paper for 2+ weeks. Monitor Sharpe ≥1.3, win rate ≥58%, max DD <2%.
+4) **Infrastructure Week** (Week 6): Build drift monitor (KS-test weekly), alert system (Slack webhook), daily P&L reports.
+5) **Brain future**: Revisit ML only if alternative data sources become available (order flow, sentiment, options). Current brain archived as reference - AUC 0.50-0.52 with public OHLCV data is expected ceiling.
 
 ---
 

@@ -57,19 +57,23 @@
 
 ---
 
-## Week 4 — Paper Canary Mode 🔄
+## Week 4 — RSI Baseline Optimization 🔄
 **Status**: In Progress (Dec 2025)
 
 - ✅ Alpaca paper trading script (`scripts/paper_trade.py`)
 - ✅ CSV trade logging (`alpaca_rsi_log.csv`)
-- 🔄 Daily reports (CSV summary, P&L tracking)
+- ✅ Brain retraining analysis (AUC 0.50-0.52, not promoted)
+- ✅ Phase 1 RSI filters implemented (time-of-day, volume, volatility)
+- 🔄 Phase 1 backtest comparison (baseline vs enhanced)
+- ⏳ Phase 2 implementation (dynamic thresholds, trend filter)
 - ⏳ Drift monitor (feature distribution checks)
 - ⏳ Alert system (Slack/email on stop triggers)
 
 **Current Focus**:
-- Run 1-2 week paper trading certification
-- Monitor RSI baseline vs. brain performance
-- Validate daily stop triggers in live data
+- Backtest Phase 1 RSI enhancements (2020-2024 TSLA)
+- Measure Sharpe improvement, win rate delta, drawdown impact
+- Document results in RSI_ENHANCEMENTS.md
+- Deploy best variant to paper trading
 
 **Blockers**:
 - None

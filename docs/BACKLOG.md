@@ -9,29 +9,42 @@
 
 ## 🔴 High Priority
 
-### Brain Retraining (Current Focus)
+### RSI Baseline Phase 1 Backtest (Current Focus)
 **Priority**: 🔴 High  
 **Status**: In Progress  
 **Owner**: TBD
 
-**Goal**: Retrain expert models + brain on 2018-2024 TSLA data to improve AUC from ~0.50-0.52 to ≥0.55.
+**Goal**: Backtest Phase 1 RSI enhancements vs baseline to validate +10-20% Sharpe improvement hypothesis.
 
 **Tasks**:
-- [ ] Pull TSLA minute data (2018-2024) from QuantConnect
-- [ ] Resample to 5-minute bars
-- [ ] Build cost-aware 60-minute forward labels
-- [ ] Train RSI/MACD/Trend experts with hyperparameter search
-- [ ] Train brain with expert predictions + regime features
-- [ ] Export JSONs and sync to local `/models/`
-- [ ] Backtest with brain ON (edge ≥0.10, cap 0.20%)
-- [ ] Promote only if beats RSI baseline after costs
+- [x] Implement Phase 1 filters (time-of-day, volume, volatility)
+- [ ] Create backtest comparison script (baseline vs Phase 1)
+- [ ] Run 2020-2024 TSLA backtest in QuantConnect
+- [ ] Measure metrics: Sharpe, win rate, max DD, trade count
+- [ ] Document results in RSI_ENHANCEMENTS.md
+- [ ] Deploy best variant to paper trading
 
 **Acceptance**:
-- AUC ≥ 0.55 on hold-out set
-- Brain outperforms RSI in walk-forward backtest
-- JSONs uploaded to QC Object Store + local `/models/`
+- Sharpe improves by ≥10% OR win rate +5%
+- Max drawdown unchanged or decreased
+- Trade count reduction <40%
 
 **Blockers**: None
+
+---
+
+### Brain Retraining (COMPLETED - NOT PROMOTED)
+**Priority**: 🔴 High → ✅ Complete  
+**Status**: Complete (Dec 17, 2025)  
+**Owner**: TBD
+
+**Result**: Tested multiple configurations (H=6/12/24, 2018-2024 data, LightGBM hyperparameter tuning). All yielded AUC 0.50-0.52 (coin-flip). **Decision: Brain not promoted. RSI baseline remains champion.** Public OHLCV features on liquid stocks have limited predictive power. Models archived in `models/*.json` for reference. See DEVELOPMENT_LOG.md for full analysis.
+
+**Lessons Learned**:
+- Financial markets are adversarial - basic technical indicators on public data unlikely to achieve strong edge
+- AUC 0.50-0.52 is expected ceiling with OHLCV-derived features
+- Real edge requires alternative data (order flow, sentiment, options) or microstructure features
+- RSI baseline works due to strict risk management (ATR brackets, daily stop), not prediction
 
 ---
 

@@ -15,9 +15,14 @@ Read in this order:
 - **[PROJECT_BRIEF.md](PROJECT_BRIEF.md)** — Trading system overview
   - Goal: Predict 60-min forward returns, size by confidence, enforce risk limits
   - Universe: TSLA (5m bars), expand to basket later
-  - Models: 3 experts (RSI, MACD, Trend) → brain (logistic regression)
+  - Models: 3 experts (RSI, MACD, Trend) → brain (logistic regression) - **Brain not promoted (AUC 0.50-0.52)**
   - Risk: -1% daily stop, ATR-based position sizing, bracket orders
-  - Current status: RSI-only mode (brain parked until AUC improves)
+  - **Current status**: RSI baseline champion with Phase 1 enhancements (time/volume/volatility filters)
+
+- **[RSI_ENHANCEMENTS.md](RSI_ENHANCEMENTS.md)** — RSI strategy optimization roadmap (NEW)
+  - Phase 1: Quick win filters (time-of-day, volume, volatility) - **IN PROGRESS**
+  - Phase 2: Dynamic logic (adaptive thresholds, trend filter, BB confirmation)
+  - Phase 3: Advanced techniques (trailing stops, multi-timeframe, scaling)
 
 - **[ARCHITECTURE.md](ARCHITECTURE.md)** — System architecture (NEW)
   - Module structure and dependencies
