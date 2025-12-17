@@ -181,7 +181,10 @@ def backtest_rsi(df, phase1_filters=False, phase2_enhancements=False, initial_ca
             
             # 2. Volatility regime filter: vol_z > 0.5
             if row.vol_z < 0.5:
-          Phase 2 Enhancements (if enabled)
+                equity_curve.append({'time': idx, 'equity': current_equity})
+                continue
+        
+        # Phase 2 Enhancements (if enabled)
         if phase2_enhancements:
             # 2.1 Dynamic RSI thresholds based on volatility
             if row.vol_z > 1.0:  # High volatility
@@ -197,9 +200,6 @@ def backtest_rsi(df, phase1_filters=False, phase2_enhancements=False, initial_ca
             # Fixed thresholds
             rsi_buy = 25
             rsi_sell = 75
-        
-        #       equity_curve.append({'time': idx, 'equity': current_equity})
-                continue
         
         # Exit logic
         if position > 0 and row.rsi > rsi_sell:
@@ -218,17 +218,7 @@ def backtest_rsi(df, phase1_filters=False, phase2_enhancements=False, initial_ca
                     'exit_time': idx,
                     'entry_price': entry_price,
                     'exit_price': exit_price,
-              Phase 2 Filter 2: Trend filter (if enabled)
-            if phase2_enhancements and row.ema200_rel < -0.05:
-                equity_curve.append({'time': idx, 'equity': current_equity})
-                continue
-            
-            # Phase 2 Filter 3: Bollinger Band confirmation (if enabled)
-            if phase2_enhancements and row.bb_z > -0.8:
-                equity_curve.append({'time': idx, 'equity': current_equity})
-                continue
-            
-            #       'shares': position,
+                    'shares': position,
                     'pnl': pnl,
                     'hold_minutes': hold_minutes,
                     'exit_reason': 'rsi_exit'
@@ -242,6 +232,16 @@ def backtest_rsi(df, phase1_filters=False, phase2_enhancements=False, initial_ca
         if position == 0 and row.rsi < rsi_buy:
             # Phase 1 Filter 3: Volume confirmation (if enabled)
             if phase1_filters and row.volm_z < 1.0:
+                equity_curve.append({'time': idx, 'equity': current_equity})
+                continue
+            
+            # Phase 2 Filter 2: Trend filter (if enabled)
+            if phase2_enhancements and row.ema200_rel < -0.05:
+                equity_curve.append({'time': idx, 'equity': current_equity})
+                continue
+            
+            # Phase 2 Filter 3: Bollinger Band confirmation (if enabled)
+            if phase2_enhancements and row.bb_z > -0.8:
                 equity_curve.append({'time': idx, 'equity': current_equity})
                 continue
             
@@ -316,7 +316,17 @@ def backtest_rsi(df, phase1_filters=False, phase2_enhancements=False, initial_ca
             'trade_count': 0,
             'win_rate': 0,
             'avg_win': 0,
-      all backtests
+            'avg_loss': 0,
+            'profit_factor': 0,
+            'sharpe': 0,
+            'max_drawdown': 0,
+            'final_equity': initial_capital
+        }
+    
+    return trades_df, equity_df, metrics
+
+
+# Run all backtests
 print("\n" + "="*60)
 print("RUNNING BASELINE RSI BACKTEST")
 print("="*60)
@@ -351,17 +361,7 @@ for key in metrics_baseline.keys():
     elif key == 'trade_count':
         print(f"{key:<25} {baseline_val:>15.0f} {phase1_val:>15.0f} {phase12_val:>15.0f}")
     else:
-        print(f"{key:<25} ${baseline_val:>14,.2f} ${phase1_val:>14,.2f} ${phase12wn']:
-        delta = phase1_val - baseline_val
-        print(f"{key:<25} {baseline_val:>14.2f}% {phase1_val:>14.2f}% {delta:>+14.2f}%")
-    elif key in ['sharpe', 'profit_factor']:
-        delta_pct = ((phase1_val - baseline_val) / baseline_val * 100) if baseline_val != 0 else 0
-        print(f"{key:<25} {baseline_val:>15.2f} {phase1_val:>15.2f} {delta_pct:>+13.1f}%")
-    elif key == 'trade_count':
-        delta_pct = ((phase1_val - baseline_val) / baseline_val * 100) if baseline_val != 0 else 0
-        print(f"{key:<25} {baseline_val:>15.0f} {phase1_val:>15.0f} {delta_pct:>+13.1f}%")
-    else:
-        print(f"{key:<25} ${baseline_val:>14,.2f} ${phase1_val:>14,.2f}")
+        print(f"{key:<25} ${baseline_val:>14,.2f} ${phase1_val:>14,.2f} ${phase12_val:>14,.2f}")
 
 # Detailed trade analysis
 print("\n" + "="*60)
@@ -382,9 +382,23 @@ if len(trades_phase12) > 0:
     print(trades_phase12.head())
     print(f"\nPhase 1+2 - Win/Loss breakdown:")
     print(trades_phase12.groupby(trades_phase12['pnl'] > 0)['pnl'].agg(['count', 'mean', 'sum']))
+if len(trades_phase1) > 0:
+    print(f"\nPhase 1 - First 5 trades:")
     print(trades_phase1.head())
     print(f"\nPhase 1 - Win/Loss breakdown:")
     print(trades_phase1.groupby(trades_phase1['pnl'] > 0)['pnl'].agg(['count', 'mean', 'sum']))
+
+if len(trades_phase12) > 0:
+    print(f"\nPhase 1+2 - First 5 trades:")
+    print(trades_phase12.head())
+    print(f"\nPhase 1+2 - Win/Loss breakdown:")
+    print(trades_phase12.groupby(trades_phase12['pnl'] > 0)['pnl'].agg(['count', 'mean', 'sum']))
+
+# Verdict
+print("\n" + "="*60)
+print("VERDICT")
+print("="*60)
+
 # Phase 1 vs Baseline
 sharpe_p1_abs = metrics_phase1['sharpe'] - metrics_baseline['sharpe']
 win_rate_p1_delta = metrics_phase1['win_rate'] - metrics_baseline['win_rate']
@@ -417,12 +431,6 @@ if sharpe_p12_pct >= 10 or win_rate_p12_delta >= 0.05:
 elif metrics_phase12['sharpe'] > metrics_phase1['sharpe']:
     print("⚠️  PHASE 2 MARGINAL: Improvement <10%, consider deploying Phase 1 only")
 else:
-    print("❌ PHASE 2 DEGRADES: Stick with Phase 1 only
-    print("   - Sharpe improved ≥10% OR win rate +5%")
-    print("   - Recommended for paper trading deployment")
-else:
-    print("\n❌ PHASE 1 NOT PROMOTED: Below acceptance threshold")
-    print("   - Need Sharpe +10% OR win rate +5%")
-    print("   - Consider Phase 2 enhancements or parameter tuning")
+    print("❌ PHASE 2 DEGRADES: Stick with Phase 1 only")
 
 print("\n" + "="*60)
