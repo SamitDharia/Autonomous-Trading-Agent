@@ -135,8 +135,8 @@ df_feat = pd.DataFrame({
 df_feat = df_feat[(df_feat["atr_pct"] <= 0.02) & (df_feat["volm_z"] > -1) & (df_feat["volm_z"] < 5)]
 
 # Label: forward horizon (configurable) > cost threshold
-# We'll allow quick sweeps later; default to 60-min (12 * 5-min bars)
-H = 12
+# Using 2-hour horizon (24 * 5-min bars) based on sweep results showing H=24 → AUC 0.5275
+H = 24
 cost_bps = 0.001  # 10 bps
 fwd = close.shift(-H)
 ret_fwd = (fwd - close) / close
