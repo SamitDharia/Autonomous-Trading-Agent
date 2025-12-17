@@ -195,9 +195,9 @@ if USE_LGBM:
     X_tr_final, X_val_final = X.iloc[:split_idx], X.iloc[split_idx:]
     y_tr_final, y_val_final = y.iloc[:split_idx], y.iloc[split_idx:]
 
-    rsi_clf.fit(X_tr_final[rsi_feats], y_tr_final, eval_set=[(X_val_final[rsi_feats], y_val_final)], early_stopping_rounds=50, verbose=False)
-    macd_clf.fit(X_tr_final[macd_feats], y_tr_final, eval_set=[(X_val_final[macd_feats], y_val_final)], early_stopping_rounds=50, verbose=False)
-    trend_clf.fit(X_tr_final[trend_feats], y_tr_final, eval_set=[(X_val_final[trend_feats], y_val_final)], early_stopping_rounds=50, verbose=False)
+    rsi_clf.fit(X_tr_final[rsi_feats], y_tr_final, eval_set=[(X_val_final[rsi_feats], y_val_final)], callbacks=[lgb.early_stopping(50), lgb.log_evaluation(0)])
+    macd_clf.fit(X_tr_final[macd_feats], y_tr_final, eval_set=[(X_val_final[macd_feats], y_val_final)], callbacks=[lgb.early_stopping(50), lgb.log_evaluation(0)])
+    trend_clf.fit(X_tr_final[trend_feats], y_tr_final, eval_set=[(X_val_final[trend_feats], y_val_final)], callbacks=[lgb.early_stopping(50), lgb.log_evaluation(0)])
 
     # Expert probs for brain
     rsi_p_tr = rsi_clf.predict_proba(X_tr_final[rsi_feats])[:, 1]
