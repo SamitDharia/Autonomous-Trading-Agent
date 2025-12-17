@@ -1,9 +1,16 @@
 # Project Brief
 
-This document is the source of truth for the trading system. Keep it minimal, robust, and testable.
+**This document is the source of truth for the trading system.** Keep it minimal, robust, and testable.
 
-## Goal (single sentence)
+## Goal
 Build a reliable, low-maintenance trading bot that predicts whether the next 60 minutes will move enough (after costs) to justify a trade, sizes positions by confidence, and obeys strict risk limits.
+
+## Key Non-Negotiables
+- **Single symbol TSLA** (start), then expand to small basket (AAPL, MSFT, SPY)
+- **Single timeframe**: 5-minute bars (prediction horizon: 60 minutes)
+- **Risk engine is authoritative; ML is an opinion**
+- **Kill-switches**: daily loss (-1%), data quality checks, broker errors → flatten and pause
+- **QC for research/backtests only; live/paper runs locally** (avoid QC live fees)
 
 ## Rails
 - Platform: QuantConnect (LEAN Cloud) for backtests/research only; local Lean/standalone for live/paper to avoid QC live fees

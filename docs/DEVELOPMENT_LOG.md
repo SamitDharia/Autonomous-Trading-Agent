@@ -1,8 +1,18 @@
-# Notes
+# Development Log
 
 Running diary of decisions, rationale, and results. Keep entries concise and dated.
 
-## 2025-10-13
+---
+
+## 2025-12-16
+**Cleanup & Integration Sprint**
+- Removed 1000+ unused files (QC data, old logs, duplicate code): 30% repo size reduction (3.1 GB → 2.2 GB)
+- Integrated feature builder, risk guards, expert/brain ensemble into `algo.py`
+- Consolidated documentation: PROJECT_BRIEF (master), DEVELOPMENT_LOG (this file), BOT_SPEC deprecated
+- Status: algo.py ready for local backtest, brain parked until retraining
+
+## 2025-12-15
+**Workflow & Alpaca Setup**
 - Initialized repository structure and created the Project Brief.
 
 ## 2025-11-09
