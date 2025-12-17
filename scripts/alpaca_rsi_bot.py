@@ -282,15 +282,15 @@ def main() -> None:
             append_log("skip_time_of_day", price, rsi_val, 0, msg)
             return
         
-        # Phase 1 Filter 2: Volatility regime (vol_z > 0.5)
-        if vol_z < 0.5:
+        # Phase 1 Filter 2: Volatility regime (vol_z > 0.2) - TEMPORARILY LOOSENED FOR TESTING
+        if vol_z < 0.2:
             msg = f"No entry: low volatility regime (vol_z={vol_z:.2f})"
             print(msg)
             append_log("skip_volatility", price, rsi_val, 0, msg)
             return
         
-        # Phase 1 Filter 3: Volume confirmation (volm_z > 1.0)
-        if volm_z < 1.0:
+        # Phase 1 Filter 3: Volume confirmation (volm_z > 0.3) - TEMPORARILY LOOSENED FOR TESTING
+        if volm_z < 0.3:
             msg = f"No entry: insufficient volume (volm_z={volm_z:.2f})"
             print(msg)
             append_log("skip_volume", price, rsi_val, 0, msg)
