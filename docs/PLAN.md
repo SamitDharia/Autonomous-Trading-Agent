@@ -57,17 +57,52 @@
 
 ---
 
-## Week 4 — RSI Baseline Optimization 🔄
-**Status**: In Progress (Dec 2025)
+## Week 4 — RSI Phase 1 & Brain Decision ✅
+**Status**: Complete (Dec 2025)
 
 - ✅ Alpaca paper trading script (`scripts/paper_trade.py`)
 - ✅ CSV trade logging (`alpaca_rsi_log.csv`)
 - ✅ Brain retraining analysis (AUC 0.50-0.52, not promoted)
 - ✅ Phase 1 RSI filters implemented (time-of-day, volume, volatility)
-- 🔄 Phase 1 backtest comparison (baseline vs enhanced)
-- ⏳ Phase 2 implementation (dynamic thresholds, trend filter)
+- ✅ Phase 1 backtest comparison: Sharpe -0.09 → 0.41 (turned losing → profitable)
+- ✅ RSI_ENHANCEMENTS.md roadmap created
+
+**Deliverables**:
+- ✅ Brain decision documented in [DEVELOPMENT_LOG.md](DEVELOPMENT_LOG.md)
+- ✅ Phase 1 filters in [algo.py](../algo.py)
+- ✅ Phase 1 backtest results in [RSI_ENHANCEMENTS.md](RSI_ENHANCEMENTS.md)
+
+---
+
+## Week 5 — RSI Phase 2 & Deployment ✅
+**Status**: Complete (Dec 2025)
+
+- ✅ Phase 2 implementation (dynamic thresholds, trend filter, BB confirmation)
+- ✅ Phase 1+2 backtest: **Sharpe 0.80** (+97% vs Phase 1), Win Rate 72.7%
+- ✅ Updated [scripts/alpaca_rsi_bot.py](../scripts/alpaca_rsi_bot.py) with Phase 1+2 logic
+- ✅ Created [DEPLOYMENT.md](../DEPLOYMENT.md) guide
+- ✅ Deployed to Alpaca paper trading
+
+**Deliverables**:
+- ✅ Phase 2 enhancements in [algo.py](../algo.py) and [scripts/alpaca_rsi_bot.py](../scripts/alpaca_rsi_bot.py)
+- ✅ Phase 2 backtest results in [RSI_ENHANCEMENTS.md](RSI_ENHANCEMENTS.md)
+- ✅ Deployment guide: [DEPLOYMENT.md](../DEPLOYMENT.md)
+
+---
+
+## Week 6 — Paper Trading Monitoring 🔄
+**Status**: In Progress (Dec 2025)
+
+- ✅ Deployed Phase 1+2 strategy to Alpaca paper trading
+- 🔄 Monitor 5-7 days for validation (target: Sharpe ≥1.0, win rate ≥70%)
 - ⏳ Drift monitor (feature distribution checks)
-- ⏳ Alert system (Slack/email on stop triggers)
+- ⏳ Alert system (Slack/email on kill-switch triggers)
+- ⏳ Daily P&L report automation
+
+**Deliverables**:
+- Paper trading logs in `alpaca_rsi_log.csv`
+- Performance comparison vs backtest predictions
+- Monitoring infrastructure
 
 **Current Focus**:
 - Backtest Phase 1 RSI enhancements (2020-2024 TSLA)

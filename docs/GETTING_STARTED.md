@@ -1,6 +1,17 @@
 # Getting Started
 
-Complete setup guide to run the Autonomous Trading Agent locally.
+**Quick Start**: For immediate deployment, see [DEPLOYMENT.md](../DEPLOYMENT.md)  
+**This guide**: Development setup and project overview
+
+---
+
+## Current Strategy
+
+**Champion**: RSI Baseline with Phase 1+2 Enhancements  
+**Status**: Deployed to Alpaca paper trading (2025-12-17)  
+**Performance**: Sharpe 0.80, Win Rate 72.7% (2020-2024 backtest)
+
+**Note**: The original stacked ensemble (brain + experts) achieved AUC 0.50-0.52 and was **not promoted**. Code is preserved in `ensemble/` and `experts/` directories but is **not used** in production.
 
 ---
 
@@ -39,15 +50,27 @@ pip install -r requirements.txt
 
 **Key packages**:
 - `pandas`, `numpy` — Data processing
-- `scikit-learn` — Expert models
-- `alpaca-py` — Alpaca API client
+- `alpaca-trade-api` — Alpaca API client
 - `pytest` — Testing framework
 
 ---
 
-## 2. Configure Alpaca API Keys
+## 2. Paper Trading Deployment
 
-### Get API Keys
+**For complete deployment instructions**, see **[DEPLOYMENT.md](../DEPLOYMENT.md)**
+
+Quick summary:
+1. Get Alpaca API keys (paper trading)
+2. Set environment variables
+3. Run: `python scripts/alpaca_rsi_bot.py --symbol TSLA --loop`
+
+The bot implements all Phase 1+2 filters automatically.
+
+---
+
+## 3. Development Setup (Optional)
+
+### Configure Alpaca API Keys (Development)
 1. Log in to [Alpaca](https://app.alpaca.markets/)
 2. Navigate to **Paper Trading** → **API Keys**
 3. Generate new API key pair (save securely)

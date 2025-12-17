@@ -2,36 +2,43 @@
 
 ## System Overview
 
-The Autonomous Trading Agent uses a **stacked ensemble** architecture with strict risk controls:
+**Current Champion**: RSI Baseline with Phase 1+2 Enhancements (brain **DISABLED**)  
+**Status**: Deployed to Alpaca paper trading (2025-12-17)  
+**Backtest Performance**: Sharpe 0.80, Win Rate 72.7%, Profit Factor 0.93 (2020-2024)
 
 ```
 Market Data (5m bars)
         ↓
-   Indicators (RSI, MACD, EMA, ATR, BB)
+   Indicators (RSI, EMA200, BB, ATR, vol_z, volm_z)
         ↓
    Feature Builder
         ↓
-   ┌─────────────────────────────────┐
-   │  Level 1: Expert Models         │
-   │  ├─ RSI Expert    → p₁ ∈ [0,1] │
-   │  ├─ MACD Expert   → p₂ ∈ [0,1] │
-   │  └─ Trend Expert  → p₃ ∈ [0,1] │
-   └─────────────────────────────────┘
+   ┌──────────────────────────────────────────────┐
+   │  Phase 1 Filters (Quality Gates)            │
+   │  ├─ Time-of-day (10:00-15:30 ET)           │
+   │  ├─ Volatility regime (vol_z > 0.5)        │
+   │  └─ Volume confirmation (volm_z > 1.0)      │
+   └──────────────────────────────────────────────┘
         ↓
-   ┌─────────────────────────────────┐
-   │  Level 2: Brain (Meta-Model)    │
-   │  Inputs: [p₁, p₂, p₃, regime]  │
-   │  Output: p_final ∈ [0,1]       │
-   └─────────────────────────────────┘
+   ┌──────────────────────────────────────────────┐
+   │  Phase 2 Dynamic Logic                       │
+   │  ├─ Dynamic RSI thresholds (20/25/30)       │
+   │  ├─ Trend filter (ema200_rel > -5%)         │
+   │  └─ BB confirmation (bb_z < -0.8)           │
+   └──────────────────────────────────────────────┘
         ↓
-   Edge Gate (|p - 0.5| ≥ threshold)
+   RSI Signal (enter <threshold, exit >75)
         ↓
-   Position Sizing (ATR-scaled, capped)
+   Position Sizing (0.25% equity cap)
         ↓
-   Risk Guards (daily stop, kill-switches)
+   Risk Guards (30m hold, -1% daily stop)
         ↓
-   Order Execution (bracket orders)
+   Order Execution (bracket: 1x ATR stop, 2x ATR TP)
 ```
+
+### Legacy Architecture (Archived)
+
+The original **stacked ensemble** (3 experts → Brain meta-model) achieved AUC 0.50-0.52 and was **not promoted**. Code preserved in `ensemble/` and `experts/` directories for reference. See [TRAINING.md](TRAINING.md) and [DEVELOPMENT_LOG.md](DEVELOPMENT_LOG.md) for details.
 
 ---
 

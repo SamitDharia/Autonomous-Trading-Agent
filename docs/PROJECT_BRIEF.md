@@ -89,15 +89,20 @@ algo.py                       # QuantConnect main algorithm (wires it all)
 On QuantConnect you can keep helpers inside `algo.py` to start. Upload the model files to QC Object Store and load them in `Initialize()`.
 
 ## Current status (Dec 2025)
-- **Brain retraining completed**: Tested multiple configurations (H=6/12/24, 2018-2024 data, LightGBM 800 trees). Result: AUC 0.50-0.52 (coin-flip). **Decision: Keep RSI baseline as champion** - brain has no predictive edge over simple mean-reversion.
-- **RSI baseline Phase 1 enhancements in progress**: Implemented time-of-day filter (10:00-15:30), volume confirmation (volm_z > 1.0), volatility regime (vol_z > 0.5). Next: backtest comparison (2020-2024 TSLA) to measure impact.
-- Skeleton algo runs end-to-end (indicators, brackets, daily stop, min hold). Brain path remains in code but disabled (`use_brain = False`).
-- Live/paper is run locally via `scripts/alpaca_rsi_bot.py` (5m bars, RSI 25/75, ATR brackets 1x/2x, cap 0.25%, 30m hold). CSV logging to `alpaca_rsi_log.csv`.
-- Models archived in `models/*.json` for reference. Focus shifted from ML prediction to RSI strategy optimization.
+- **Phase 1+2 Complete & Deployed** (2025-12-17):
+  - Backtest Results (2020-2024 TSLA): **Sharpe 0.80**, Win Rate 72.7%, Profit Factor 0.93
+  - Phase 2 added +97% Sharpe improvement over Phase 1 (+0.39 absolute)
+  - All 6 filters implemented: time-of-day, volatility, volume (Phase 1) + dynamic RSI, trend filter, BB confirmation (Phase 2)
+  - Deployed to Alpaca paper trading via [scripts/alpaca_rsi_bot.py](../scripts/alpaca_rsi_bot.py)
+- **Brain archived**: AUC 0.50-0.52 (no edge), code preserved in `ensemble/`, `experts/`, `models/`
+- **Current champion**: RSI baseline + Phase 1+2 filters (see [RSI_ENHANCEMENTS.md](docs/RSI_ENHANCEMENTS.md))
+- Comprehensive deployment guide: [DEPLOYMENT.md](DEPLOYMENT.md)
+- CSV logging to `alpaca_rsi_log.csv`
 
-## Next steps (RSI optimization focus)
-1) **Phase 1 backtest comparison** (Week 4): Run 2020-2024 TSLA backtest comparing baseline RSI vs. Phase 1 enhanced (time/volume/volatility filters). Target: +10-20% Sharpe improvement.
-2) **Phase 2 implementation** (Week 5): Add dynamic RSI thresholds (volatility-adaptive), trend filter (EMA200), Bollinger Band confirmation. Backtest each enhancement individually.
+## Next steps (Week 6 - Monitoring)
+1) **Paper trading validation** (5-7 days): Monitor Sharpe ≥1.0, win rate ≥70%, compare vs backtest predictions
+2) **Infrastructure setup**: Drift monitoring (feature distribution checks), alert system (kill-switch notifications), daily P&L reports
+3) **Live trading decision** (Week 7): If paper successful → live deployment OR Phase 3 implementation (trailing stops, multi-timeframe, position scaling)
 3) **Paper trading certification** (Week 5-6): Deploy best-performing RSI variant to Alpaca paper for 2+ weeks. Monitor Sharpe ≥1.3, win rate ≥58%, max DD <2%.
 4) **Infrastructure Week** (Week 6): Build drift monitor (KS-test weekly), alert system (Slack webhook), daily P&L reports.
 5) **Brain future**: Revisit ML only if alternative data sources become available (order flow, sentiment, options). Current brain archived as reference - AUC 0.50-0.52 with public OHLCV data is expected ceiling.

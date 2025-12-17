@@ -4,12 +4,33 @@ Running diary of decisions, rationale, and results. Keep entries concise and dat
 
 ---
 
+## 2025-12-17
+**Phase 2 Validation & Deployment**
+- Completed Phase 2 backtest (2020-2024 TSLA, 5-min bars)
+  - Combined Phase 1+2: **Sharpe 0.80** (vs Phase 1: 0.41, Baseline: -0.11)
+  - Win rate: **72.7%** (vs Phase 1: 66.7%, Baseline: 64.3%)
+  - Trade count: 44 (vs Phase 1: 48, Baseline: 168) - quality over quantity
+  - Profit factor: 0.93 (nearly breakeven on average trade basis)
+- **Key insight**: Phase 2 dynamic logic (volatility-adaptive thresholds, trend filter, BB confirmation) added +97% Sharpe improvement
+- Updated `scripts/alpaca_rsi_bot.py` with all Phase 1+2 enhancements
+- Created comprehensive deployment guide ([DEPLOYMENT.md](../DEPLOYMENT.md))
+- **Status**: Phase 1+2 strategy deployed to Alpaca paper trading, monitoring 5-7 days
+- **Decision**: RSI baseline with Phase 1+2 filters is champion (brain remains disabled)
+
 ## 2025-12-16
 **Cleanup & Integration Sprint**
 - Removed 1000+ unused files (QC data, old logs, duplicate code): 30% repo size reduction (3.1 GB → 2.2 GB)
 - Integrated feature builder, risk guards, expert/brain ensemble into `algo.py`
 - Consolidated documentation: PROJECT_BRIEF (master), DEVELOPMENT_LOG (this file), BOT_SPEC deprecated
-- Status: algo.py ready for local backtest, brain parked until retraining
+- Completed brain retraining: extended data (2018-2024), horizon optimization (H=6/12/24), LightGBM tuning
+  - **Results**: AUC 0.50-0.52 across all configurations (no edge achieved)
+  - **Analysis**: Market efficiency ceiling with public OHLCV data
+  - **Decision**: Brain not promoted, RSI baseline remains champion
+- Created RSI enhancement roadmap (Phase 1-3) in [RSI_ENHANCEMENTS.md](RSI_ENHANCEMENTS.md)
+- Implemented Phase 1 filters (time-of-day, volatility, volume)
+- Phase 1 backtest: Sharpe -0.09 → 0.41 (turned losing strategy profitable)
+- Implemented Phase 2 enhancements (dynamic thresholds, trend filter, BB confirmation)
+- Status: algo.py ready for deployment with Phase 1+2, brain archived
 
 ## 2025-12-15
 **Workflow & Alpaca Setup**
