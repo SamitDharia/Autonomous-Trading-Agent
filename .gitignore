@@ -25,9 +25,18 @@ dist/
 .idea/
 
 # QuantConnect cache and outputs
-qc org wkspc dir/.QuantConnect/
+qc org wkspc dir/
 output/
 
 # Misc
 .DS_Store
 *.log
+
+# Alpaca logs (generated at runtime)
+alpaca_rsi_log.csv
+
+# Old brain artifacts (archived)
+brains/
+
+# GitHub Actions output
+run_jobs.json

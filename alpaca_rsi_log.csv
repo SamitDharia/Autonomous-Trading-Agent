@@ -1,6 +1,0 @@
-timestamp,symbol,action,price,rsi,qty,note
-2025-12-17T11:41:32.040936+00:00,TSLA,error,0.0000,0.00,0,"ERROR: HTTPSConnectionPool(host='paper-api.alpaca.markets', port=443): Max retries exceeded with url: /v2/account (Caused by SSLError(SSLCertVerificationError(1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: self signed certificate in certificate chain (_ssl.c:992)')))"
-2025-12-17T11:41:44.480304+00:00,TSLA,error,0.0000,0.00,0,"ERROR: HTTPSConnectionPool(host='paper-api.alpaca.markets', port=443): Max retries exceeded with url: /v2/account (Caused by SSLError(SSLCertVerificationError(1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: self signed certificate in certificate chain (_ssl.c:992)')))"
-2025-12-17T11:46:44.807333+00:00,TSLA,error,0.0000,0.00,0,"ERROR: HTTPSConnectionPool(host='paper-api.alpaca.markets', port=443): Max retries exceeded with url: /v2/account (Caused by SSLError(SSLCertVerificationError(1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: self signed certificate in certificate chain (_ssl.c:992)')))"
-2025-12-17T11:51:40.567604+00:00,TSLA,skip_time_of_day,489.2100,58.95,0,No entry: outside trading hours (time_of_day=21.75)
-2025-12-17T11:51:55.885679+00:00,TSLA,skip_time_of_day,489.2100,58.95,0,No entry: outside trading hours (time_of_day=21.75)
