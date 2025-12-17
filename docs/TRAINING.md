@@ -5,13 +5,14 @@ Use QuantConnect only for research/retraining; keep live/paper local. This noteb
 ## Quick steps (repeatable)
 1) In QC, open the ATA project → add/open `research.ipynb`.
 2) Paste and run the code below (run all cells). It:
-   - Pulls TSLA minute data.
+   - Pulls TSLA minute data (2018-2024, 6 years for better regime coverage).
    - Resamples to 5-minute bars.
-   - Builds richer features/labels (cost-aware 60-minute forward return).
-   - Trains tiny logistic experts (RSI, MACD, Trend) with simple C search, and the brain.
+   - Builds richer features/labels (cost-aware 60-minute forward return, includes lags + cyclical time).
+   - Trains LightGBM experts (RSI, MACD, Trend) with improved hyperparameters, exports logistic proxies.
    - Saves JSONs to `output/` and prints them so you can copy/paste into local files.
+   - **Auto-checks promotion criteria: AUC ≥ 0.55 and brain > max(experts)**.
 3) Download from `output/` or copy the printed JSON blobs into your local `models/` files.
-4) Backtest locally or in QC with `use_brain=True` (edge gate ≥ 0.20, cap 0.15–0.25%, long-only). Promote only if it beats RSI after costs.
+4) Backtest locally or in QC with `use_brain=True` (edge gate ≥ 0.15, cap 0.20%, long-only). Promote only if it beats RSI after costs.
 
 Note: `train_experiments.py` additionally writes a runtime-ready brain to `bot/brains/TSLA_1h/brain_latest.json` and timestamps copies (see `bot/brains/TSLA_1h/brain_schema_v1.json`). The runtime loader (`bot/src/model/brain_loader.py`) validates the brain schema and checks feature hash parity.
 
@@ -31,8 +32,8 @@ import lightgbm as lgb
 
 qb = QuantBook()
 sym = qb.AddEquity("TSLA", Resolution.Minute).Symbol
-# extend history for more regimes
-hist = qb.History(sym, start=datetime(2018,1,1), end=datetime(2022,1,1), resolution=Resolution.Minute)
+# Extended to 2024 for more regimes and better generalization
+hist = qb.History(sym, start=datetime(2018,1,1), end=datetime(2024,1,1), resolution=Resolution.Minute)
 
 # Resample to 5-minute
 df = hist.loc[sym].reset_index().rename(columns={"time":"timestamp"})
@@ -168,10 +169,18 @@ trend_feats = ["ema20_rel", "ema50_rel", "ema200_rel"]
 X = df_feat.drop(columns=["label"])
 y = df_feat["label"]
 
+# Diagnostics: print class balance
+print(f"Dataset size: {len(y)} samples")
+print(f"Class balance: {y.sum()} positives ({y.mean()*100:.2f}%), {len(y)-y.sum()} negatives ({(1-y.mean())*100:.2f}%)")
+print(f"Date range: {df_feat.index.min()} to {df_feat.index.max()}")
+
 # Build and evaluate experts with time-series CV
 if USE_LGBM:
     def mk_lgb():
-        return lgb.LGBMClassifier(n_estimators=500, learning_rate=0.05, random_state=42)
+        # Increased trees + lower learning rate for better generalization
+        return lgb.LGBMClassifier(n_estimators=800, learning_rate=0.03, max_depth=4, 
+                                  min_child_samples=50, subsample=0.8, colsample_bytree=0.8,
+                                  random_state=42)
 
     rsi_clf = mk_lgb()
     macd_clf = mk_lgb()
@@ -280,7 +289,31 @@ out.mkdir(parents=True, exist_ok=True)
 (out / "brain.json").write_text(json.dumps(brain_json, indent=2))
 
 print("Saved models to output/*.json")
-print("AUCs (val):", {"RSI": float(rsi_mean_auc), "MACD": float(macd_mean_auc), "Trend": float(trend_mean_auc), "Brain_val": float(brain_auc)})
+print("\n" + "="*60)
+print("TRAINING RESULTS SUMMARY")
+print("="*60)
+print(f"Data: {df_feat.index.min()} to {df_feat.index.max()} ({len(y)} samples)")
+print(f"Label balance: {y.mean()*100:.2f}% positive (60-min fwd > {cost_bps*10000:.0f} bps)")
+print(f"\nAUCs (time-series CV, 5 folds):")
+print(f"  RSI Expert:   {rsi_mean_auc:.4f}")
+print(f"  MACD Expert:  {macd_mean_auc:.4f}")
+print(f"  Trend Expert: {trend_mean_auc:.4f}")
+print(f"  Brain (val):  {brain_auc:.4f}")
+print(f"\n🎯 PROMOTION CRITERIA CHECK:")
+print(f"  ✓ AUC >= 0.55? {'✅ YES' if brain_auc >= 0.55 else '❌ NO'} (Brain: {brain_auc:.4f})")
+print(f"  ✓ Brain > max(experts)? {'✅ YES' if brain_auc > max(rsi_mean_auc, macd_mean_auc, trend_mean_auc) else '❌ NO'}")
+print(f"\n📋 NEXT STEPS:")
+if brain_auc >= 0.55:
+    print("  1. Download JSONs from output/ to local models/")
+    print("  2. Backtest in algo.py with use_brain=True, edge >= 0.15")
+    print("  3. Verify beats RSI baseline after costs")
+    print("  4. Upload to QC Object Store if promoted")
+else:
+    print("  ⚠️  Brain AUC too low - keep RSI baseline as champion")
+    print("  1. Try extended date range or feature engineering")
+    print("  2. Check horizon sweep results below for optimal H/cost")
+    print("  3. Re-train with best parameters")
+print("="*60 + "\n")
 
 # Optional quick sweep over horizons and cost thresholds
 for H_try in (6, 12, 24):
