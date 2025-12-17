@@ -2,12 +2,12 @@
 
 ## Quick Start (for new contributors)
 Read in this order:
-1. **[PROJECT_BRIEF.md](PROJECT_BRIEF.md)** — Goal, architecture, models, risk controls (source of truth)
-2. **[GETTING_STARTED.md](GETTING_STARTED.md)** — Setup, run backtest, verify output, paper trading
-3. **[ARCHITECTURE.md](ARCHITECTURE.md)** — Module dependencies, data flow, testing strategy
-4. **[DEVELOPMENT_LOG.md](DEVELOPMENT_LOG.md)** — Recent decisions, rationale, results
-5. **[PLAN.md](PLAN.md)** — 8-week roadmap with status (Weeks 1-3 ✅, Week 4 🔄)
-6. **[BACKLOG.md](BACKLOG.md)** — Known issues, enhancements, priorities
+1. **[DEPLOYMENT.md](../DEPLOYMENT.md)** — Production deployment guide (START HERE for paper/live trading)
+2. **[PROJECT_BRIEF.md](PROJECT_BRIEF.md)** — Goal, architecture, current status (source of truth)
+3. **[RSI_ENHANCEMENTS.md](RSI_ENHANCEMENTS.md)** — Phase 1+2 strategy details and backtest results
+4. **[GETTING_STARTED.md](GETTING_STARTED.md)** — Development setup
+5. **[DEVELOPMENT_LOG.md](DEVELOPMENT_LOG.md)** — Recent decisions, rationale, results
+6. **[PLAN.md](PLAN.md)** — 8-week roadmap (Weeks 1-5 ✅, Week 6 🔄)
 
 ## Core Documentation
 
@@ -15,21 +15,23 @@ Read in this order:
 - **[PROJECT_BRIEF.md](PROJECT_BRIEF.md)** — Trading system overview
   - Goal: Predict 60-min forward returns, size by confidence, enforce risk limits
   - Universe: TSLA (5m bars), expand to basket later
-  - Models: 3 experts (RSI, MACD, Trend) → brain (logistic regression) - **Brain not promoted (AUC 0.50-0.52)**
-  - Risk: -1% daily stop, ATR-based position sizing, bracket orders
-  - **Current status**: RSI baseline champion with Phase 1 enhancements (time/volume/volatility filters)
+  - Models: RSI baseline with Phase 1+2 filters (6 filters total) - **CURRENT CHAMPION**
+  - Brain: Stacked ensemble archived (AUC 0.50-0.52, not promoted)
+  - Risk: -1% daily stop, 0.25% position cap, ATR brackets (1x/2x)
+  - **Current status**: Phase 1+2 deployed to paper trading (Sharpe 0.80, Win Rate 72.7%)
 
-- **[RSI_ENHANCEMENTS.md](RSI_ENHANCEMENTS.md)** — RSI strategy optimization roadmap (NEW)
-  - Phase 1: Quick win filters (time-of-day, volume, volatility) - **IN PROGRESS**
-  - Phase 2: Dynamic logic (adaptive thresholds, trend filter, BB confirmation)
-  - Phase 3: Advanced techniques (trailing stops, multi-timeframe, scaling)
+- **[DEPLOYMENT.md](../DEPLOYMENT.md)** — Production deployment guide (NEW)
+  - Alpaca paper trading setup
+  - Credential configuration
+  - Running the bot (loop mode)
+  - Monitoring and troubleshooting
+  - Success criteria (5-7 day evaluation)
 
-- **[ARCHITECTURE.md](ARCHITECTURE.md)** — System architecture (NEW)
-  - Module structure and dependencies
-  - Data flow: bars → features → experts → brain → size → order
-  - Model storage (local + QC Object Store)
-  - Testing strategy
-  - Dual runtime (QC vs. local)
+- **[RSI_ENHANCEMENTS.md](RSI_ENHANCEMENTS.md)** — RSI strategy optimization roadmap
+  - Phase 1: ✅ COMPLETE (time-of-day, volume, volatility filters)
+  - Phase 2: ✅ COMPLETE (dynamic thresholds, trend filter, BB confirmation)
+  - Phase 3: ⏳ PLANNED (trailing stops, multi-timeframe, position scaling)
+  - Backtest results: Baseline → Phase 1 → Phase 1+2 comparison
 
 ### Getting Started
 - **[GETTING_STARTED.md](GETTING_STARTED.md)** — Setup guide (NEW)
@@ -42,27 +44,28 @@ Read in this order:
 
 ### Development
 - **[DEVELOPMENT_LOG.md](DEVELOPMENT_LOG.md)** — Dated entries for decisions and results
-  - Latest: 2025-12-17 documentation consolidation
-  - Previous: 2025-12-16 cleanup (1000+ files removed, algo.py integrated)
-  - Workflow: QC for research/backtests, local for live/paper (Alpaca)
+  - Latest: 2025-12-17 Phase 2 validation (Sharpe 0.80, deployed to paper trading)
+  - Previous: 2025-12-16 brain retraining (AUC 0.50-0.52, not promoted), Phase 1 implementation
+  - Workflow: QC for research/backtests, local Alpaca for live/paper
   
-- **[PLAN.md](PLAN.md)** — 8-week roadmap (ENHANCED)
-  - Week 1-3: ✅ Foundation, LEAN setup, risk engine
-  - Week 4: 🔄 Paper canary mode (current focus)
-  - Week 5-6: ⏳ Brain promotion system
-  - Week 7-8: ⏳ Robustness hardening
+- **[PLAN.md](PLAN.md)** — 8-week roadmap
+  - Weeks 1-3: ✅ Foundation, LEAN setup, risk engine
+  - Weeks 4-5: ✅ RSI Phase 1+2 implementation and validation
+  - Week 6: 🔄 Paper trading monitoring (current focus)
+  - Weeks 7-8: ⏳ Live trading or Phase 3 enhancements
 
-- **[BACKLOG.md](BACKLOG.md)** — Open items and enhancements (CONSOLIDATED)
-  - 🔴 High: Brain retraining, drift monitor, alert system
-  - 🟡 Medium: Walk-forward pipeline, multi-symbol, analytics
-  - 🟢 Low: Regime filters, RL sizing, trade journal
+- **[BACKLOG.md](BACKLOG.md)** — Open items and enhancements
+  - 🔴 High: Paper trading monitoring (Week 6 focus)
+  - 🟡 Medium: Drift monitor, alert system, analytics
+  - 🟢 Low: Phase 3 enhancements, multi-symbol, regime filters
 
 ### Reference
-- **[TRAINING.md](TRAINING.md)** — Model training notes (QC Research notebook)
-- **[REVIEW.md](REVIEW.md)** — Repository review and known issues
+- **[TRAINING.md](TRAINING.md)** — Brain training code (archived, H=24 configuration)
+- **[ARCHITECTURE.md](ARCHITECTURE.md)** — System architecture (current RSI baseline + legacy ensemble)
 
 ### Archive
 - **[ARCHIVE/](ARCHIVE/)** — Deprecated/historical docs
+  - REVIEW_deprecated.md (pre-cleanup repository audit)
   - BOT_SPEC_deprecated.md
   - CLEANUP_2025-12.md
   - README_BOT_SPEC_deprecated.md
@@ -71,27 +74,36 @@ Read in this order:
 ## Repository Structure
 ```
 /
-├── algo.py                   # Main QuantConnect algorithm
+├── algo.py                   # QuantConnect algorithm (Phase 1+2)
+├── DEPLOYMENT.md             # Production deployment guide
 ├── requirements.txt          # Python dependencies
 ├── /docs/                    # All documentation (you are here)
-├── /experts/                 # Level-1 expert models (RSI, MACD, Trend)
-├── /ensemble/                # Level-2 brain (meta-model)
+├── /scripts/                 # Production scripts (3 files)
+│   ├── alpaca_rsi_bot.py           # Paper/live trading bot
+│   ├── backtest_phase1_comparison.py  # Validation framework
+│   └── set_alpaca_env.ps1          # Credential helper
 ├── /features/                # Feature builder (indicators + regime)
 ├── /risk/                    # Position sizing, guards, kill-switches
-├── /models/                  # Trained model JSONs (local + QC Object Store)
-├── /scripts/                 # Backtests, paper trading, utilities
-├── /tests/                   # Unit tests for all modules
-└── /brains/                  # Brain model storage (versioned)
+├── /experts/                 # ARCHIVED: Level-1 expert models
+├── /ensemble/                # ARCHIVED: Level-2 brain (meta-model)
+├── /models/                  # ARCHIVED: Trained model JSONs (reference only)
+└── /tests/                   # Unit tests
 ```
 
-## Module Dependencies
+## Module Dependencies (Current)
 ```
-algo.py
+alpaca_rsi_bot.py
+  ├─→ calculate_features() [RSI, vol_z, volm_z, ema200_rel, bb_z]
+  ├─→ get_dynamic_rsi_thresholds(vol_z) [Phase 2]
+  ├─→ Phase 1 filters: time_of_day, vol_z, volm_z
+  ├─→ Phase 2 filters: trend (ema200_rel), BB (bb_z)
+  └─→ Alpaca REST API (bracket orders, position management)
+
+algo.py (QuantConnect)
   ├─→ features.feature_builder.build_features()
   ├─→ risk.guards.{daily_pnl_stop_hit, indicators_ready}
-  ├─→ experts.{rsi,macd,trend}_expert.predict_proba()
-  ├─→ ensemble.brain.predict_proba()
-  └─→ risk.position_sizing.size_from_prob()
+  ├─→ Phase 1+2 logic (inline)
+  └─→ QC broker API (SetHoldings, MarketOrder, StopMarketOrder)
 ```
 
 ## Common Tasks
