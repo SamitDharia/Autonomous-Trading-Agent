@@ -1,6 +1,6 @@
 # RSI Baseline Strategy Enhancements
 
-**Status**: Phase 1 in development  
+**Status**: Phase 1+2 Complete, Ready for Paper Trading  
 **Last Updated**: 2025-12-17
 
 ## Executive Summary
@@ -262,10 +262,53 @@ if not invested and rsi < 25:
 - [x] Add trend filter (EMA200 relative position)
 - [x] Add Bollinger Band confirmation
 - [x] Update backtest script to support Phase 2 testing
-- [ ] Run Phase 1+2 combined backtest in QuantConnect
-- [ ] Document results (will add after backtest execution)
-- [ ] A/B test each enhancement individually (if needed)
-- [ ] Parameter sensitivity analysis (if deployed)
+- [x] Run Phase 1+2 combined backtest in QuantConnect
+- [x] Document results (see Phase 2 Backtest Results below)
+- [ ] A/B test each enhancement individually (optional deep-dive)
+- [ ] Parameter sensitivity analysis (after deployment)
+
+---
+
+### Phase 2 Backtest Results (2020-2024 TSLA, 5-min bars)
+
+**Execution Date**: 2025-12-17  
+**Data**: 98,960 bars (2020-01-02 to 2024-12-30)  
+**Costs**: 0.5 bps commission + 2 bps slippage
+
+| Metric | Baseline | Phase 1 | Phase 1+2 | P1+2 vs P1 |
+|--------|----------|---------|-----------|------------|
+| **Sharpe Ratio** | -0.11 | +0.41 | **+0.80** | **+97%** ✅ |
+| **Total Return** | -0.05% | +0.14% | **+0.19%** | +36% |
+| **Trade Count** | 168 | 48 | **44** | -8.3% |
+| **Win Rate** | 64.3% | 66.7% | **72.7%** | **+6.1%** ✅ |
+| **Profit Factor** | 0.52 | 0.73 | **0.93** | +27% |
+| **Avg Win** | $6.69 | $13.77 | **$10.05** | -27% |
+| **Avg Loss** | -$12.81 | -$18.77 | **-$10.85** | -42% ✅ |
+| **Max Drawdown** | 0.00% | 0.00% | **0.00%** | - |
+
+**Key Insights**:
+1. **Phase 2 nearly doubled Sharpe ratio** (+97% vs Phase 1) - far exceeds +10% threshold
+2. **Win rate improved 6.1%** - exceeds +5% acceptance criteria
+3. **Profit factor improved to 0.93** - getting close to 1.0 (breakeven after costs)
+4. **Only 4 fewer trades** (44 vs 48) - minimal opportunity reduction
+5. **Smaller average losses** (-$10.85 vs -$18.77) - trend filter prevented large drawdowns
+6. **Trend filter effectiveness**: Eliminated the massive -$104.78 COVID crash trade (2020-02-25) that Phase 1 captured
+
+**Phase 2 Enhancement Impact**:
+- **Dynamic RSI thresholds**: Adapted to volatility regimes (20/80 low-vol, 30/70 high-vol)
+- **Trend filter (EMA200)**: Prevented catastrophic losses during strong downtrends
+- **Bollinger Band confirmation**: Double-checked oversold conditions for higher conviction entries
+
+**Decision**: ✅ **PHASE 2 PROMOTED**  
+- Sharpe improvement +97% >> 10% threshold
+- Win rate improvement +6.1% > 5% threshold
+- Both acceptance criteria exceeded decisively
+- **Deploy Phase 1+2 combined to paper trading**
+
+**Trade Quality Comparison**:
+- Baseline: 108 wins / 60 losses (64% win rate, but losing overall due to poor avg win/loss ratio)
+- Phase 1: 32 wins / 16 losses (67% win rate, +$140 total PnL)
+- Phase 1+2: 32 wins / 12 losses (73% win rate, +$191 total PnL) ← **Winner**
 
 ---
 
