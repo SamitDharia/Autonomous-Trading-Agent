@@ -75,9 +75,9 @@ class ProbRSISkeleton(QCAlgorithm):
         self.brain = Brain.load(self.ObjectStore, "models/brain.json")
 
         # Default: brain on for backtests (strict gate/cap to limit trades).
-        self.use_brain = True
+        self.use_brain = False  # Phase 1: Testing RSI enhancements
 
-        self.Debug("Initialized Phase 1 skeleton with indicators and RSI rule")
+        self.Debug("Initialized with RSI baseline + Phase 1 filters (time-of-day, volume, volatility)")
 
     # Consolidated bar handler (5-minute)
     def _on_five_minute_bar(self, bar: TradeBar) -> None:
@@ -115,19 +115,57 @@ class ProbRSISkeleton(QCAlgorithm):
         invested = self.Portfolio[self.symbol].Invested
 
         if not self.use_brain:
-            # --- Phase 1: Simple RSI rule ---
+            # --- RSI Baseline with Phase 1 Enhancements ---
             rsi = features["rsi"]
+            
+            # PHASE 1 FILTERS: Quality over quantity
+            
+            # 1.1 Time-of-Day Filter: Avoid first/last 30 minutes
+            time_of_day = features.get("time_of_day", 9.5)
+            if time_of_day < 10.0 or time_of_day > 15.5:
+                # Outside core trading hours (too volatile/wide spreads)
+                if invested and (self._last_entry_time is None or (self.Time - self._last_entry_time) >= self.min_hold):
+                    # Still allow exits during these times
+                    if rsi > 75:
+                        self.Liquidate(self.symbol, tag="RSI>75 exit (off-hours)")
+                        self._cancel_brackets()
+                if not invested:
+                    self._cancel_brackets()
+                return
+            
+            # 1.2 Volatility Regime Filter: Only trade when vol > average
+            vol_regime = features.get("vol_z", 0.0)
+            if vol_regime < 0.5:
+                # Below average volatility - mean reversion signals unreliable
+                if invested and (self._last_entry_time is None or (self.Time - self._last_entry_time) >= self.min_hold):
+                    if rsi > 75:
+                        self.Liquidate(self.symbol, tag="RSI>75 exit (low-vol)")
+                        self._cancel_brackets()
+                if not invested:
+                    self._cancel_brackets()
+                return
+            
+            # Exit Logic (always enabled)
             if invested and rsi > 75:
                 if self._last_entry_time is None or (self.Time - self._last_entry_time) >= self.min_hold:
                     self.Liquidate(self.symbol, tag="RSI>75 exit")
                     self._cancel_brackets()
+            
+            # Entry Logic with Filters
             elif not invested and rsi < 25:
-                # Fixed ~0.5% equity position for the dummy rule
-                target_value = self.Portfolio.TotalPortfolioValue * self.edge_size
-                qty = int(target_value / max(price, 1e-6))
-                if qty > 0:
-                    self._enter_with_bracket(direction=1, qty=qty, price=price, atr=atr_value)
-                    self._last_entry_time = self.Time
+                # 1.3 Volume Confirmation: Require volume spike for entry
+                volm_z = features.get("volm_z", 0.0)
+                if volm_z > 1.0:  # Volume > 1 std dev above average
+                    # All filters passed - enter position
+                    target_value = self.Portfolio.TotalPortfolioValue * self.edge_size
+                    qty = int(target_value / max(price, 1e-6))
+                    if qty > 0:
+                        self._enter_with_bracket(direction=1, qty=qty, price=price, atr=atr_value)
+                        self._last_entry_time = self.Time
+                        self.Debug(f"Phase 1 Entry: RSI={rsi:.1f}, vol_z={vol_regime:.2f}, volm_z={volm_z:.2f}")
+                else:
+                    # Volume too low, skip entry
+                    self.Debug(f"Skip entry: RSI={rsi:.1f} but volm_z={volm_z:.2f} < 1.0")
 
             if not self.Portfolio.Invested:
                 self._cancel_brackets()

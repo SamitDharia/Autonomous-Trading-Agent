@@ -40,6 +40,20 @@ Running diary of decisions, rationale, and results. Keep entries concise and dat
 - QC backtests with brain ON, edge 0.05–0.20 and cap 0.0015–0.0020 all lost money/flat; no clear edge. RSI baseline remains stronger.
 - Current QC code: brain ON, edge gate 0.05, cap 0.0020 (for testing). If blank backtest, loosen edge; if too many losing trades, tighten or set `use_brain=False` to revert to RSI baseline.
 
+## 2025-12-17
+**Brain Retraining: Final Results & Decision**
+- Completed comprehensive brain retraining with extended data (2018-2024, 6 years)
+- Improved hyperparameters: LightGBM 800 trees, lr=0.03, regularization
+- Tested multiple configurations (H=6/12/24, 3 cost thresholds, extended date range)
+- **Results**: All configurations yielded AUC ~0.50-0.52 (coin-flip performance)
+  - H=12: RSI 0.5029, MACD 0.5049, Trend 0.5089, Brain 0.5094
+  - H=24: RSI 0.5029, MACD 0.5049, Trend 0.5089, Brain 0.5077
+  - Horizon sweep showed marginal improvements (H=24 0.5275) but this was single-split overfitting; time-series CV revealed true performance ~0.50
+- **Analysis**: Public technical indicators on liquid stocks (TSLA) are heavily arbitraged. AUC 0.50-0.52 is the expected ceiling with OHLCV-derived features. Real edge requires alternative data (order flow, sentiment, options) or microstructure features.
+- **Decision**: Keep RSI baseline as champion (`use_brain=False`). Brain shows no predictive edge over simple mean-reversion at extremes.
+- **Rationale**: RSI baseline works due to strict risk management (ATR brackets, 30m hold, daily stop, 0.25% cap), not prediction. Focus shifts to infrastructure (drift monitor, alerts) and RSI strategy enhancements.
+- Models archived in `models/*.json` for reference; brain path remains in code but disabled by default.
+
 ---
 
 ## See Also
