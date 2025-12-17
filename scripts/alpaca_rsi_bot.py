@@ -32,6 +32,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+import pytz
 from alpaca_trade_api.rest import REST, TimeFrame, TimeFrameUnit
 
 
@@ -98,8 +99,11 @@ def calculate_features(df: pd.DataFrame) -> pd.DataFrame:
     vol_std_qty = df["volume"].rolling(20).std() + 1e-8
     df["volm_z"] = (df["volume"] - vol_mean_qty) / vol_std_qty
     
-    # Time of day (hours since midnight, e.g., 10:30 AM = 10.5)
-    df["time_of_day"] = df.index.hour + df.index.minute / 60.0
+    # Time of day (hours since midnight in US/Eastern, e.g., 10:30 AM ET = 10.5)
+    # Convert UTC index to US/Eastern
+    eastern = pytz.timezone('US/Eastern')
+    df_et = df.index.tz_convert(eastern)
+    df["time_of_day"] = df_et.hour + df_et.minute / 60.0
     
     # Phase 2 features
     # EMA200 relative position (%)
