@@ -39,3 +39,15 @@ Running diary of decisions, rationale, and results. Keep entries concise and dat
 - Trained updated models (2018–2022, cost-aware label, filters) but AUCs stayed ~0.50–0.52. JSONs updated in `models/`.
 - QC backtests with brain ON, edge 0.05–0.20 and cap 0.0015–0.0020 all lost money/flat; no clear edge. RSI baseline remains stronger.
 - Current QC code: brain ON, edge gate 0.05, cap 0.0020 (for testing). If blank backtest, loosen edge; if too many losing trades, tighten or set `use_brain=False` to revert to RSI baseline.
+
+---
+
+## See Also
+- **[PROJECT_BRIEF.md](PROJECT_BRIEF.md)** — System goals and current status
+- **[PLAN.md](PLAN.md)** — 8-week roadmap (Week 4 in progress)
+- **[BACKLOG.md](BACKLOG.md)** — Open items and priorities
+- **[INDEX.md](INDEX.md)** — Documentation navigation
+
+---
+
+**Last updated**: 2025-12-17

@@ -100,3 +100,16 @@ On QuantConnect you can keep helpers inside `algo.py` to start. Upload the model
 2) Re-enable ensemble: `use_brain = True`, strict edge gate (start with |p-0.5| >= 0.20+), cap 0.15–0.25%, long-only unless edge improves.
 3) Compare against RSI champion; promote brain only if it beats RSI after costs.
 4) Keep QC for research/backtests; run live/paper locally (Lean CLI or standalone Alpaca script) to avoid QC live fees.
+
+---
+
+## See Also
+- **[ARCHITECTURE.md](ARCHITECTURE.md)** — System design, module dependencies, data flow
+- **[GETTING_STARTED.md](GETTING_STARTED.md)** — Setup, run backtest, paper trading
+- **[DEVELOPMENT_LOG.md](DEVELOPMENT_LOG.md)** — Recent decisions and results
+- **[PLAN.md](PLAN.md)** — 8-week roadmap with status
+- **[INDEX.md](INDEX.md)** — Documentation navigation
+
+---
+
+**Last updated**: 2025-12-17
