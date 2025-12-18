@@ -85,6 +85,8 @@ def calculate_metrics(trades_df: pd.DataFrame) -> dict:
     if trades_df.empty:
         return {
             "total_trades": 0,
+            "wins": 0,
+            "losses": 0,
             "win_rate": 0.0,
             "avg_win": 0.0,
             "avg_loss": 0.0,
@@ -167,6 +169,20 @@ def print_report(metrics: dict, filters: dict, trades_df: pd.DataFrame, days: in
     print("=" * 70)
     
     print(f"\nTotal Trades:     {metrics['total_trades']}")
+    
+    if metrics['total_trades'] == 0:
+        print("\n⚠️  No trades executed yet.")
+        print("   Bot is running and checking conditions every 5 minutes.")
+        print("   Waiting for market conditions to meet all filter criteria.")
+        print("\n   Current filters (temporarily loosened for Week 6):")
+        print("   - Time of day: 10:00-15:30 ET")
+        print("   - RSI < threshold (dynamic 20/25/30)")
+        print("   - Volatility: vol_z > 0.2")
+        print("   - Volume spike: volm_z > 0.3")
+        print("   - Trend filter: ema200_rel > -5%")
+        print("   - Bollinger: bb_z < -0.8")
+        return
+    
     print(f"Wins:             {metrics['wins']}")
     print(f"Losses:           {metrics['losses']}")
     print(f"Win Rate:         {metrics['win_rate']:.1%}")
