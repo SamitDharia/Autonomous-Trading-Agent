@@ -116,6 +116,47 @@ def calculate_features(df: pd.DataFrame) -> pd.DataFrame:
     return df.dropna()
 
 
+def calculate_rsi_15min(df_5min: pd.DataFrame) -> float:
+    """
+    Phase 3.2: Calculate 15-min RSI from 5-min bars.
+    Uses pandas resample to consolidate 5-min → 15-min, then computes RSI(14).
+    
+    Returns 50.0 (neutral) if insufficient data or calculation fails.
+    """
+    try:
+        # Resample 5-min bars to 15-min bars
+        df_15min = df_5min.resample('15T').agg({
+            'open': 'first',
+            'high': 'max',
+            'low': 'min',
+            'close': 'last',
+            'volume': 'sum',
+        }).dropna()
+        
+        if len(df_15min) < 15:  # Need at least 15 bars for RSI(14)
+            return 50.0
+        
+        # Calculate RSI on 15-min bars
+        delta = df_15min['close'].diff()
+        gain = delta.where(delta > 0, 0.0).rolling(window=14).mean()
+        loss = (-delta.where(delta < 0, 0.0)).rolling(window=14).mean()
+        
+        rs = gain / (loss + 1e-9)
+        rsi = 100.0 - (100.0 / (1.0 + rs))
+        
+        # Get latest 15-min RSI value
+        latest_rsi = rsi.iloc[-1]
+        
+        if pd.isna(latest_rsi):
+            return 50.0
+        
+        return float(latest_rsi)
+        
+    except Exception as e:
+        print(f"[WARNING] Failed to calculate 15-min RSI: {e}")
+        return 50.0  # Neutral fallback
+
+
 def get_dynamic_rsi_thresholds(vol_z: float) -> tuple:
     """
     Phase 2: Dynamic RSI thresholds based on volatility regime
@@ -307,6 +348,9 @@ def main() -> None:
         
         # Get dynamic RSI thresholds based on volatility regime
         rsi_low, rsi_high = get_dynamic_rsi_thresholds(vol_z)
+        
+        # Phase 3.2: Calculate 15-min RSI for multi-timeframe confirmation
+        rsi_15m = calculate_rsi_15min(df)
 
         # Enforce min hold by checking last filled order time
         last_fill = latest_filled_order_time(api, args.symbol)
@@ -377,6 +421,13 @@ def main() -> None:
             msg = f"No entry: RSI {rsi_val:.2f} >= {rsi_low:.0f} (vol_z={vol_z:.2f})"
             print(msg)
             append_log("skip_rsi", price, rsi_val, 0, msg)
+            return
+        
+        # Phase 3.2: Multi-timeframe RSI filter (15-min must be bearish/neutral)
+        if rsi_15m >= 50.0:
+            msg = f"No entry: 5m RSI {rsi_val:.2f} oversold but 15m RSI {rsi_15m:.2f} still bullish"
+            print(msg)
+            append_log("skip_multi_tf", price, rsi_val, 0, msg)
             return
         
         # Phase 2 Filter 1: Trend filter (don't catch falling knives)
