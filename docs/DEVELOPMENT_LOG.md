@@ -4,6 +4,28 @@ Running diary of decisions, rationale, and results. Keep entries concise and dat
 
 ---
 
+## 2025-12-18
+**Week 6: Cloud Deployment & Phase 4 ML Infrastructure**
+- **Cloud Deployment**: Bot successfully deployed to DigitalOcean droplet (Frankfurt, $6/month)
+  - Created [CLOUD_DEPLOYMENT.md](CLOUD_DEPLOYMENT.md) guide (AWS, DigitalOcean, Google Cloud)
+  - Fixed timezone bug: Bot was using UTC instead of US/Eastern for time_of_day filter
+  - Deployed bot as background process (nohup), running 24/7 since Dec 17
+- **Temporary Filter Loosening**: Reduced vol_z (0.5→0.2) and volm_z (1.0→0.3) thresholds
+  - **Rationale**: Strict filters = 1 trade per 6 weeks; loosened to get 2-5 trades this week for execution validation
+  - Plan: Revert to strict levels after bracket orders confirmed working
+- **Phase 4 Shadow ML Logging**: Implemented zero-risk ML infrastructure
+  - Created `ml/shadow.py` with lazy imports + try/except wrapper (impossible to break execution)
+  - Added shadow hook in `alpaca_rsi_bot.py` (disabled by default, enable via ML_SHADOW_ENABLED env var)
+  - Log-first approach: Collect 500+ labeled trades before training any models
+  - Market-state features only (RSI, vol_z, volm_z, etc.) - no bot-performance metrics
+  - Documented in [RSI_ENHANCEMENTS.md](RSI_ENHANCEMENTS.md) Phase 4 + [ml/README.md](../ml/README.md)
+- **Phase 3 Planning**: Designed trailing stops + multi-TF RSI (no implementation yet)
+  - [PHASE3_TRAILING_STOP_DESIGN.md](PHASE3_TRAILING_STOP_DESIGN.md): ATR-based trailing stops via order.replace()
+  - [PHASE3_MULTI_TF_RSI_DESIGN.md](PHASE3_MULTI_TF_RSI_DESIGN.md): 15-min RSI confirmation (5m <25, 15m <50)
+  - Created `scripts/analyze_recent_trades.py` for post-trade analysis
+- **Status**: Bot running on droplet, waiting for first trade execution (Dec 18, 10 AM ET market open)
+- **Decision**: Wait for execution validation before implementing Phase 3 enhancements
+
 ## 2025-12-17
 **Phase 2 Validation & Deployment**
 - Completed Phase 2 backtest (2020-2024 TSLA, 5-min bars)
@@ -85,4 +107,4 @@ Running diary of decisions, rationale, and results. Keep entries concise and dat
 
 ---
 
-**Last updated**: 2025-12-17
+**Last updated**: 2025-12-18

@@ -1,103 +1,133 @@
 # Project Backlog
 
+**Last Updated**: 2025-12-18  
+**Current Week**: Week 6 (Paper Trading Validation + Cloud Deployment)
+
 ## Priority Legend
-- 🔴 High (Week 4-5)
-- 🟡 Medium (Week 6-7)
-- 🟢 Low (Week 8+)
+- 🔴 High (Current Week)
+- 🟡 Medium (Next 2-3 weeks)
+- 🟢 Low (Future, not scheduled)
 
 ---
 
-## 🔴 High Priority
+## 🔴 High Priority (Week 6 - Current)
 
-### RSI Phase 1+2 Deployment (COMPLETED)
-**Priority**: 🔴 High → ✅ Complete  
-**Status**: Complete (Dec 17, 2025) - Deployed to paper trading  
-**Owner**: TBD
-
-**Result**: Phase 1+2 backtest (2020-2024 TSLA) achieved **Sharpe 0.80** (vs baseline -0.11), Win Rate 72.7%, Profit Factor 0.93. All acceptance criteria exceeded (+97% Sharpe improvement, +6.1% win rate improvement). Strategy deployed to Alpaca paper trading.
-
-**Tasks**:
-- [x] Implement Phase 1 filters (time-of-day, volume, volatility)
-- [x] Implement Phase 2 enhancements (dynamic RSI, trend filter, BB confirmation)
-- [x] Create backtest comparison script (baseline vs Phase 1 vs Phase 1+2)
-- [x] Run 2020-2024 TSLA backtest in QuantConnect
-- [x] Measure metrics: Sharpe, win rate, max DD, trade count
-- [x] Document results in RSI_ENHANCEMENTS.md
-- [x] Deploy to Alpaca paper trading
-- [ ] Monitor paper trading 5-7 days (IN PROGRESS)
-- [ ] Compare live results vs backtest predictions
-
-**Acceptance**: ✅ ALL MET
-- Sharpe improved by +97% (far exceeds +10% target)
-- Win rate +6.1% (exceeds +5% target)
-- Trade count reduced 74% (168→44, quality over quantity)
-
-**Next**: Week 6 monitoring and infrastructure setup
-
----
-
-### Brain Retraining (COMPLETED - NOT PROMOTED)
-**Priority**: 🔴 High → ✅ Complete  
-**Status**: Complete (Dec 17, 2025)  
-**Owner**: TBD
-
-**Result**: Tested multiple configurations (H=6/12/24, 2018-2024 data, LightGBM hyperparameter tuning). All yielded AUC 0.50-0.52 (coin-flip). **Decision: Brain not promoted. RSI baseline remains champion.** Public OHLCV features on liquid stocks have limited predictive power. Models archived in `models/*.json` for reference. See DEVELOPMENT_LOG.md for full analysis.
-
-**Lessons Learned**:
-- Financial markets are adversarial - basic technical indicators on public data unlikely to achieve strong edge
-- AUC 0.50-0.52 is expected ceiling with OHLCV-derived features
-- Real edge requires alternative data (order flow, sentiment, options) or microstructure features
-- RSI baseline works due to strict risk management (ATR brackets, daily stop), not prediction
-
----
-
-### Paper Trading Monitoring (Week 6 - Current Focus)
+### Week 6 Paper Trading Validation
 **Priority**: 🔴 High  
 **Status**: In Progress  
-**Owner**: TBD
+**Owner**: User
 
-**Goal**: Monitor Phase 1+2 strategy in Alpaca paper trading for 5-7 days.
+**Goal**: Validate Phase 1+2 execution works correctly in live environment.
 
 **Tasks**:
-- [x] Deploy alpaca_rsi_bot.py to paper trading
-- [ ] Monitor daily: Sharpe, win rate, profit factor, trade count
-- [ ] Compare vs backtest predictions (Sharpe 0.80, win rate 72.7%)
-- [ ] Log all trades to alpaca_rsi_log.csv
-- [ ] Investigate any significant deviations
-- [ ] Make go/no-go decision for live trading
+- [x] Deploy bot to DigitalOcean droplet (138.68.150.144)
+- [x] Fix timezone bug (UTC → US/Eastern for time_of_day filter)
+- [x] Loosen filters temporarily (vol_z 0.5→0.2, volm_z 1.0→0.3) for faster validation
+- [x] Verify bot running 24/7 (process 28353)
+- [ ] **First trade execution** (waiting for Dec 18, 10 AM ET market open)
+- [ ] Monitor bracket orders (stop-loss, take-profit) execute correctly
+- [ ] Collect 3-5 trades this week for validation
+- [ ] Run analyze_recent_trades.py to check performance
+- [ ] Revert filters to strict levels after execution confirmed
+- [ ] Make go/no-go decision for Phase 3 implementation
 
 **Acceptance**:
-- Paper trading Sharpe ≥1.0 (target)
-- Win rate ≥70%
-- Profit factor ≥0.9
-- Results consistent with backtest (±20%)
+- ✅ Bracket orders place correctly (stop-loss, take-profit)
+- ✅ Entry/exit timing matches expected behavior
+- ✅ No critical errors or missed signals
+- ✅ At least 3 trades executed successfully
 
-**Blockers**: None (runs during US market hours 10 AM-3:30 PM ET)
+**Blockers**: 
+- Waiting for market volatility (currently low, vol_z < 0.2)
+- First trade execution untested (85% confidence in code)
+
+**Next Steps**:
+1. Check dashboard at 3 PM Ireland (10 AM ET): https://app.alpaca.markets/paper/dashboard
+2. If successful → Implement Phase 3.1 (trailing stops)
+3. If errors → Debug bracket orders, delay Phase 3
 
 ---
 
-### Drift Monitor
-**Priority**: 🟡 Medium (Week 6)  
-**Status**: Not Started  
-**Owner**: TBD
+### Phase 3 Planning (Ready to Implement After Validation)
+**Priority**: 🔴 High  
+**Status**: Design Complete, Implementation Waiting  
+**Owner**: User
 
-**Goal**: Detect feature distribution shifts in live data vs. training data.
+**Goal**: Enhance Phase 1+2 strategy with advanced techniques (trailing stops, multi-TF RSI).
 
-**Tasks**:
-- [ ] Track feature statistics (RSI, vol_z, volm_z, ema200_rel, bb_z)
-- [ ] Compute Kolmogorov-Smirnov test weekly
-- [ ] Alert if any feature drifts beyond 2-sigma threshold
-- [ ] Log drift metrics to CSV for analysis
+**Phase 3.1 - Trailing ATR Stop**:
+- [x] Design document created ([PHASE3_TRAILING_STOP_DESIGN.md](PHASE3_TRAILING_STOP_DESIGN.md))
+- [x] Researched Alpaca order.replace() API
+- [ ] Implement trailing stop logic in alpaca_rsi_bot.py
+- [ ] Backtest vs Phase 2 baseline (target: +10% Sharpe)
+- [ ] Deploy to paper trading if validated
+
+**Phase 3.2 - Multi-Timeframe RSI**:
+- [x] Design document created ([PHASE3_MULTI_TF_RSI_DESIGN.md](PHASE3_MULTI_TF_RSI_DESIGN.md))
+- [x] Selected approach: Option B (5m <25, 15m <50)
+- [ ] Implement 15-min RSI consolidation
+- [ ] Add multi-TF filter to entry logic
+- [ ] Backtest vs Phase 2 baseline (target: +10% Sharpe)
+- [ ] Deploy to paper trading if validated
 
 **Acceptance**:
-- Alert triggered if RSI distribution shifts ≥20%
-- Weekly drift report emailed/logged
+- Trailing stops: Sharpe improves ≥10% vs Phase 2 (target: 0.88+)
+- Multi-TF RSI: Win rate improves +3-5%, trade reduction <40%
+- Combined Phase 3: Sharpe ≥1.0
+
+**Dependencies**: Week 6 execution validation must complete first
+
+---
+
+## 🟡 Medium Priority (Weeks 7-8)
+
+### Phase 4 Shadow ML Logging (Infrastructure Ready)
+**Priority**: 🟡 Medium  
+**Status**: Implemented, Disabled by Default  
+**Owner**: User
+
+**Goal**: Collect training dataset for future ML research (optional).
+
+**Tasks**:
+- [x] Implement ml/shadow.py with zero-risk logging
+- [x] Add shadow hook in alpaca_rsi_bot.py (try/except wrapper)
+- [x] Document in RSI_ENHANCEMENTS.md + ml/README.md
+- [ ] Enable ML_SHADOW_ENABLED=true after Week 6 validation
+- [ ] Collect 500+ trades over 6 months
+- [ ] Analyze: Does ML improve expectancy vs rule-based filters?
+- [ ] Go/No-Go decision based on out-of-sample expectancy (not AUC)
+
+**Acceptance**:
+- JSONL log contains 500+ trades with features + outcomes
+- If ML expectancy > baseline + 2σ → Train model and promote
+- If no improvement → Abandon ML, stick with rules
+
+**Blockers**: Need 6 months of live trading data first
+
+---
+
+### Analysis & Monitoring Tools
+**Priority**: 🟡 Medium  
+**Status**: Partially Complete  
+**Owner**: User
+
+**Tasks**:
+- [x] Created analyze_recent_trades.py (win rate, Sharpe, PnL analysis)
+- [ ] Add drift monitoring (feature distribution shifts)
+- [ ] Weekly performance reports (automated)
+- [ ] Slack/email alerts for daily loss >-1%
+- [ ] Dashboard: real-time PnL, open positions, filter stats
+
+**Acceptance**:
+- analyze_recent_trades.py shows accurate metrics vs backtest
+- Drift alerts trigger if feature distributions shift >20%
+- Weekly reports sent automatically
 
 **Blockers**: None
 
 ---
 
-### Alert System (Slack/Email)
+## 🟢 Low Priority (Future, Not Scheduled)
 **Priority**: 🟡 Medium (Week 6)  
 **Status**: Not Started  
 **Owner**: TBD
