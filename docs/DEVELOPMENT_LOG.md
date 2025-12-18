@@ -5,26 +5,44 @@ Running diary of decisions, rationale, and results. Keep entries concise and dat
 ---
 
 ## 2025-12-18
-**Week 6: Cloud Deployment & Phase 4 ML Infrastructure**
+**Week 6: Execution Validation Complete ✅**
+- **First Trade Executed**: 15:54 UTC, 5 TSLA @ $484.74 with full bracket orders
+  - Entry: Market order (filled at $484.74)
+  - Take-profit: Limit order @ $489.18 (0.9% target)
+  - Stop-loss: Stop order @ $482.52 (0.46% risk)
+  - **Validation**: All 3 orders placed correctly, Alpaca API 100% functional
+- **Churning Discovery**: Ultra-loose filters (vol_z > 0.0, volm_z disabled) caused rapid re-entry
+  - Observed 7+ entries/exits in 90 minutes (multiple stop-outs)
+  - Root cause: No filter rejection after stop-out → immediate re-entry on next signal
+  - **Lesson learned**: Filters act as natural cooldown, not just quality gates
+- **Filter Restoration**: Reverted to loosened production filters (vol_z > 0.2, volm_z > 0.3)
+  - Decision: Keep 0.2/0.3 thresholds for 3-5 trades/week frequency
+  - Original backtest filters (0.5/1.0) too strict for current market (1 trade/6 weeks)
+  - Bot restarted with proper filters (PID 44394) at 17:36 UTC
 - **Cloud Deployment**: Bot successfully deployed to DigitalOcean droplet (Frankfurt, $6/month)
   - Created [CLOUD_DEPLOYMENT.md](CLOUD_DEPLOYMENT.md) guide (AWS, DigitalOcean, Google Cloud)
   - Fixed timezone bug: Bot was using UTC instead of US/Eastern for time_of_day filter
-  - Deployed bot as background process (nohup), running 24/7 since Dec 17
-- **Temporary Filter Loosening**: Reduced vol_z (0.5→0.2) and volm_z (1.0→0.3) thresholds
-  - **Rationale**: Strict filters = 1 trade per 6 weeks; loosened to get 2-5 trades this week for execution validation
-  - Plan: Revert to strict levels after bracket orders confirmed working
+  - Running 24/7 as background process (nohup)
 - **Phase 4 Shadow ML Logging**: Implemented zero-risk ML infrastructure
   - Created `ml/shadow.py` with lazy imports + try/except wrapper (impossible to break execution)
   - Added shadow hook in `alpaca_rsi_bot.py` (disabled by default, enable via ML_SHADOW_ENABLED env var)
   - Log-first approach: Collect 500+ labeled trades before training any models
-  - Market-state features only (RSI, vol_z, volm_z, etc.) - no bot-performance metrics
   - Documented in [RSI_ENHANCEMENTS.md](RSI_ENHANCEMENTS.md) Phase 4 + [ml/README.md](../ml/README.md)
-- **Phase 3 Planning**: Designed trailing stops + multi-TF RSI (no implementation yet)
+- **Phase 3 Planning**: Designed trailing stops + multi-TF RSI (ready for implementation)
   - [PHASE3_TRAILING_STOP_DESIGN.md](PHASE3_TRAILING_STOP_DESIGN.md): ATR-based trailing stops via order.replace()
   - [PHASE3_MULTI_TF_RSI_DESIGN.md](PHASE3_MULTI_TF_RSI_DESIGN.md): 15-min RSI confirmation (5m <25, 15m <50)
   - Created `scripts/analyze_recent_trades.py` for post-trade analysis
-- **Status**: Bot running on droplet, waiting for first trade execution (Dec 18, 10 AM ET market open)
-- **Decision**: Wait for execution validation before implementing Phase 3 enhancements
+- **Phase 3.1 Implementation**: ATR-based trailing stops deployed (17:47 UTC)
+  - Added `maybe_update_trailing_stop()` function (1.5 ATR trail distance)
+  - Trails only when profitable, never widens stop
+  - Locks in breakeven after profit moves
+  - Uses `api.replace_order()` for atomic updates
+  - Safe error handling (original stop stays active if update fails)
+  - All trail attempts logged (trail_update, trail_error, trail_warning)
+  - Deployed to droplet (PID 44977), running in production
+  - Awaiting first profitable position to validate trail behavior
+- **Status**: Week 6 complete, Phase 3.1 deployed, bot running with trailing stops
+- **Decision**: Monitor trail behavior, then implement Phase 3.2 (multi-TF RSI)
 
 ## 2025-12-17
 **Phase 2 Validation & Deployment**

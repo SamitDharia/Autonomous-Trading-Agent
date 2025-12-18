@@ -102,11 +102,13 @@ On QuantConnect you can keep helpers inside `algo.py` to start. Upload the model
 - Comprehensive deployment guides: [DEPLOYMENT.md](DEPLOYMENT.md) (local), [CLOUD_DEPLOYMENT.md](docs/CLOUD_DEPLOYMENT.md) (cloud)
 - CSV logging to `alpaca_rsi_log.csv`
 
-## Next steps (Week 6 - Execution Validation)
-1) **First trade execution** (Dec 18): Validate bracket orders work correctly (stop-loss + take-profit)
-2) **Collect 3-5 trades**: Temporary filter loosening (vol_z 0.2, volm_z 0.3) for faster validation
-3) **Performance analysis**: Run analyze_recent_trades.py to verify metrics match backtest
-4) **Go/No-Go decision**: If successful → Implement Phase 3 (trailing stops + multi-TF RSI), target Sharpe 1.0+
+## Next steps (Week 7+ - Phase 3 Implementation)
+1) **✅ Week 6 Complete**: First trade executed (Dec 18, 15:54 UTC), bracket orders validated, filters restored (vol_z 0.2, volm_z 0.3)
+2) **Choose Phase 3 enhancement** (trailing stops OR multi-TF RSI):
+   - **Option A**: Phase 3.1 Trailing Stops (ATR-based, reduce premature stop-outs, target: +0.1-0.2 Sharpe)
+   - **Option B**: Phase 3.2 Multi-TF RSI (15-min confirmation, filter false signals, target: +0.1-0.15 Sharpe)
+3) **Implement chosen enhancement**: Backtest → paper deploy → validate with 10+ trades
+4) **Performance analysis**: Run analyze_recent_trades.py to verify metrics match backtest
 5) **60-day certification** (Q1 2026): Paper run with Sharpe ≥1.0, max drawdown <2% before live deployment
 6) **Brain future**: Shadow ML logging will collect 500+ trades over 6 months for future model evaluation
 
