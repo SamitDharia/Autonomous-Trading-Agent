@@ -490,6 +490,241 @@ Test key thresholds:
 
 ---
 
+## Phase 4: Shadow-Mode ML Logging (Future - After Paper Trading Validation)
+
+**Status**: CODE IMPLEMENTED, DISABLED BY DEFAULT  
+**Prerequisite**: Complete Week 6 paper trading, validate execution quality  
+**Goal**: Collect clean training dataset for future ML research (no model needed yet)  
+**Risk**: ZERO (lazy imports, try/except wrapper, completely optional)
+
+### 4.1 Design Philosophy (User-Approved Constraints)
+
+1. **No ML Gating**: ML never blocks or approves trades - rule-based filters are sole decision-makers
+2. **Log-First Approach**: First collect 500+ labeled trades (features + outcomes), train model later
+3. **Market-State Features Only**: Use RSI, ATR, vol_z, volm_z, ema200_rel, bb_z, time_of_day (NO bot-performance metrics like recent_sharpe, recent_win_rate)
+4. **Zero-Risk Integration**: Lazy imports + try/except wrapper = impossible to break trade execution
+5. **Reversible**: Disable via environment variable, no code changes needed
+
+### 4.2 Implementation Details
+
+**File Structure**:
+```
+ml/
+  __init__.py         # Package marker
+  shadow.py           # shadow_log() function + config
+```
+
+**Config Flags** (environment variables):
+```bash
+# Enable shadow-mode logging (default: false)
+export ML_SHADOW_ENABLED=true
+
+# Log-only mode - don't run predictions (default: true, safe for Phase 4.1)
+export ML_SHADOW_LOG_ONLY=true
+
+# Run ML predictions if model exists (default: false, for Phase 4.2+)
+export ML_SHADOW_PREDICT=false
+
+# Log file path (default: ml_shadow_log.jsonl)
+export ML_SHADOW_LOG_PATH=ml_shadow_log.jsonl
+```
+
+**Insertion Point**: [alpaca_rsi_bot.py](../scripts/alpaca_rsi_bot.py) lines 331-364
+- **After** all 6 filters pass and qty/TP/SL calculated
+- **Before** `api.submit_order()` call
+- **Wrapped** in try/except (can never break execution)
+- **Lazy import** (only loads ml.shadow if ML_SHADOW_ENABLED=true)
+
+**Code Hook**:
+```python
+# All filters passed - calculate position size
+qty = int(equity * args.cap / price)
+stop_price = price - atr_val
+tp_price = price + 2 * atr_val
+
+# Shadow-mode ML logging (Phase 4)
+try:
+    from ml.shadow import is_enabled, shadow_log
+    
+    if is_enabled():
+        shadow_log(
+            signal_id=f"trade_{datetime.now():%Y%m%d_%H%M%S}",
+            timestamp=datetime.now(),
+            symbol="TSLA",
+            side="buy",
+            entry_ref_price=price,
+            qty=qty,
+            planned_tp=tp_price,
+            planned_sl=stop_price,
+            max_hold_bars=6,  # 30 min / 5 min bars
+            features={
+                "rsi": rsi_val,
+                "atr": atr_val,
+                "vol_z": vol_z,
+                "volm_z": volm_z,
+                "ema200_rel": ema200_rel,
+                "bb_z": bb_z,
+                "time_of_day": time_of_day,
+            },
+        )
+except Exception as e:
+    print(f"[ML SHADOW WARNING] {e} - continuing")
+
+# Trade executes normally regardless
+api.submit_order(...)
+```
+
+### 4.3 Shadow Log Schema
+
+**File**: `ml_shadow_log.jsonl` (one JSON object per line)
+
+**Example Entry**:
+```json
+{
+  "signal_id": "trade_20251217_103045",
+  "timestamp": "2025-12-17T10:30:45.123456",
+  "symbol": "TSLA",
+  "side": "buy",
+  "entry_ref_price": 245.30,
+  "qty": 12,
+  "planned_tp": 247.85,
+  "planned_sl": 243.75,
+  "max_hold_bars": 6,
+  "features": {
+    "rsi": 23.4,
+    "atr": 2.55,
+    "vol_z": 0.82,
+    "volm_z": 1.23,
+    "ema200_rel": -2.3,
+    "bb_z": -0.95,
+    "time_of_day": 10.5
+  }
+}
+```
+
+**Features Explanation**:
+- `rsi`: RSI(14) value at signal time (23.4 = oversold)
+- `atr`: Average True Range (volatility measure)
+- `vol_z`: Volatility z-score (0.82 = above-average volatility)
+- `volm_z`: Volume z-score (1.23 = high volume)
+- `ema200_rel`: Price distance from EMA200 in % (-2.3% = slight downtrend)
+- `bb_z`: Bollinger Band z-score (-0.95 = near lower band)
+- `time_of_day`: Hour.decimal format (10.5 = 10:30 AM)
+
+**Why Market-State Only?**:
+- ❌ NO `recent_sharpe`, `recent_win_rate`, `equity_curve` → bot-performance metrics cause overfitting
+- ✅ YES `rsi`, `vol_z`, `ema200_rel` → market conditions, independent of bot history
+- **Rationale**: ML should learn "what market states are profitable", not "when my bot is hot/cold"
+
+### 4.4 Why This is Zero-Risk
+
+1. **Lazy Imports**: `from ml.shadow import ...` only executes if ML_SHADOW_ENABLED=true
+   - Baseline bot never loads ml package (zero overhead)
+   - No new dependencies until explicitly enabled
+
+2. **Try/Except Wrapper**: Any exception in shadow_log() is caught and logged
+   - Trade execution continues normally
+   - Error logged to `ml_shadow_errors.log` for debugging
+   - Impossible for ML to crash the bot
+
+3. **No Decision Impact**: ML prediction (if computed) is logged but never used
+   - Rule-based filters are sole gate for trades
+   - Even if ML says "REJECT", trade still executes (shadow-mode)
+
+4. **Reversible**: Set `ML_SHADOW_ENABLED=false` to disable instantly
+   - No code changes needed
+   - No model cleanup required
+
+### 4.5 Phase 4 Roadmap
+
+**Phase 4.1: Data Collection (Months 1-6)**
+- ✅ Implement shadow_log() in [ml/shadow.py](../ml/shadow.py)
+- ✅ Add shadow hook in [alpaca_rsi_bot.py](../scripts/alpaca_rsi_bot.py)
+- [ ] Enable ML_SHADOW_ENABLED=true after Week 6 paper validation
+- [ ] Collect 500+ trades with logged features + outcomes
+- [ ] Manual labeling: add `outcome_pnl` column by joining with `alpaca_rsi_log.csv`
+
+**Phase 4.2: Model Training (Month 7, optional)**
+- [ ] Train LightGBM binary classifier: P(profitable | features)
+- [ ] Walk-forward validation: train on months 1-3, test on month 4, roll forward
+- [ ] Feature importance analysis: which features actually predictive?
+- [ ] Serialize model to `models/shadow_model.pkl`
+
+**Phase 4.3: Shadow Predictions (Months 8-9, optional)**
+- [ ] Set ML_SHADOW_PREDICT=true to enable predictions
+- [ ] Log ML predictions alongside actual trades
+- [ ] Compare: ML_APPROVE trades vs ML_REJECT trades (expectancy, drawdown)
+- [ ] Statistical significance: t-test on PnL distributions (p < 0.05)
+
+**Phase 4.4: Go/No-Go Decision (Month 10, optional)**
+- [ ] Calculate out-of-sample metrics:
+  - ML_APPROVE expectancy vs baseline
+  - ML_REJECT expectancy (should be negative if ML useful)
+  - Max drawdown comparison
+- [ ] Decision criteria:
+  - ✅ PROMOTE: ML_APPROVE expectancy > baseline + 2σ
+  - ✅ PROMOTE: ML_REJECT expectancy < -$5 (filters bad trades)
+  - ❌ ABANDON: No statistical difference → stick with rules
+
+**Reality Check**: Most traders stop here (Phase 4.1 data collection only). Training ML models is time-consuming and often yields no improvement over well-tuned rule-based filters. Focus on Phase 3 enhancements (trailing stops, multi-TF RSI) first.
+
+### 4.6 Activation Instructions (After Week 6 Completes)
+
+**On DigitalOcean Droplet**:
+```bash
+ssh root@138.68.150.144
+cd ~/Autonomous-Trading-Agent
+
+# Enable shadow-mode logging
+export ML_SHADOW_ENABLED=true
+export ML_SHADOW_LOG_ONLY=true  # Log features only, no predictions
+export ML_SHADOW_LOG_PATH=ml_shadow_log.jsonl
+
+# Restart bot with shadow mode enabled
+kill $(cat bot.pid)
+nohup .venv/bin/python scripts/alpaca_rsi_bot.py \
+  --symbol TSLA --loop --sleep-min 5 > bot.log 2>&1 &
+echo $! > bot.pid
+
+# Verify shadow logging working
+sleep 300  # Wait 5 minutes for first check
+tail ml_shadow_log.jsonl  # Should see JSON entries
+```
+
+**Expected Output** (after 2-3 trades):
+```
+{"signal_id": "trade_20251218_150234", "timestamp": "2025-12-18T15:02:34", ...}
+{"signal_id": "trade_20251218_162045", "timestamp": "2025-12-18T16:20:45", ...}
+```
+
+### 4.7 Training Dataset Preparation (Month 6+)
+
+**Join shadow logs with actual outcomes**:
+```python
+import pandas as pd
+import json
+
+# Load shadow logs (features at decision time)
+with open("ml_shadow_log.jsonl") as f:
+    shadow_data = [json.loads(line) for line in f]
+shadow_df = pd.DataFrame(shadow_data)
+
+# Load actual trade outcomes
+trade_df = pd.read_csv("alpaca_rsi_log.csv")
+trade_df = trade_df[trade_df["action"].isin(["enter", "exit"])]
+
+# Join on timestamp (match entry signals to outcomes)
+# ... (implementation details when ready to train)
+
+# Label: 1 if profitable, 0 if loss
+labeled_df["label"] = (labeled_df["exit_pnl"] > 0).astype(int)
+
+# Save training dataset
+labeled_df.to_csv("ml_training_dataset.csv", index=False)
+```
+
+---
+
 ## See Also
 
 - [DEVELOPMENT_LOG.md](DEVELOPMENT_LOG.md) - Implementation results
@@ -499,4 +734,4 @@ Test key thresholds:
 
 ---
 
-**Next Action**: Implement Phase 1 filters in [algo.py](../algo.py)
+**Next Action**: Complete Week 6 paper trading validation, then implement Phase 3 enhancements (trailing stops priority)

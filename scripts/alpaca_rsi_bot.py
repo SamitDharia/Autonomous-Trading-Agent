@@ -329,6 +329,49 @@ def main() -> None:
         stop_price = max(0.01, price - atr_val)
         tp_price = price + 2 * atr_val
 
+        # ============ SHADOW-MODE ML LOGGING (Phase 4) ============
+        # Log features + trade context for future ML training
+        # Set environment variable ML_SHADOW_ENABLED=true to activate
+        # This has ZERO impact on trade execution (wrapped in try/except)
+        try:
+            from ml.shadow import is_enabled, shadow_log
+            
+            if is_enabled():
+                signal_id = f"trade_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+                max_hold_bars = int(30 / 5)  # 30 min hold / 5 min bars = 6 bars
+                
+                ml_prediction = shadow_log(
+                    signal_id=signal_id,
+                    timestamp=datetime.now(),
+                    symbol=args.symbol,
+                    side="buy",
+                    entry_ref_price=price,
+                    qty=qty,
+                    planned_tp=tp_price,
+                    planned_sl=stop_price,
+                    max_hold_bars=max_hold_bars,
+                    features={
+                        "rsi": rsi_val,
+                        "atr": atr_val,
+                        "vol_z": vol_z,
+                        "volm_z": volm_z,
+                        "ema200_rel": ema200_rel,
+                        "bb_z": bb_z,
+                        "time_of_day": time_of_day,
+                    },
+                )
+                
+                # If ML prediction returned (Phase 4.2+), log it but DON'T use it
+                if ml_prediction:
+                    print(f"[ML SHADOW] {ml_prediction['ml_signal']} "
+                          f"(prob={ml_prediction['ml_prob']:.4f}) - "
+                          f"LOGGING ONLY, NOT GATING TRADE")
+        except Exception as e:
+            # CRITICAL: ML must never break trade execution
+            # Log warning and continue normally
+            print(f"[ML SHADOW WARNING] {e} - continuing with trade")
+        # ========================================================
+
         o = api.submit_order(
             symbol=args.symbol,
             qty=qty,
