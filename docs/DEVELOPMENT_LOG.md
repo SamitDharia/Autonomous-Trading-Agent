@@ -41,8 +41,17 @@ Running diary of decisions, rationale, and results. Keep entries concise and dat
   - All trail attempts logged (trail_update, trail_error, trail_warning)
   - Deployed to droplet (PID 44977), running in production
   - Awaiting first profitable position to validate trail behavior
-- **Status**: Week 6 complete, Phase 3.1 deployed, bot running with trailing stops
-- **Decision**: Monitor trail behavior, then implement Phase 3.2 (multi-TF RSI)
+- **Phase 3.2 Implementation**: Multi-timeframe RSI confirmation deployed (18:24 UTC)
+  - Added `calculate_rsi_15min()` function (pandas resample 5-min → 15-min bars)
+  - Calculates RSI(14) on 15-min timeframe for trend confirmation
+  - Option B filter: Skip entry if 5-min RSI < 25 BUT 15-min RSI >= 50
+  - Logic: Only enter when both timeframes align (5m oversold + 15m bearish/neutral)
+  - Fallback: Returns 50.0 (neutral) if insufficient data or calculation fails
+  - Expected impact: -20-30% trade frequency, improved win rate
+  - Deployed to droplet (PID 46592), running with Phase 3.1+3.2 active
+  - Bot restarted after git pull to activate new code
+- **Status**: Week 6 complete, Phase 3.1+3.2 deployed, bot running with full Phase 3 enhancements
+- **Decision**: Monitor multi-TF rejection logs (skip_multi_tf) and trailing stop updates
 
 ## 2025-12-17
 **Phase 2 Validation & Deployment**
