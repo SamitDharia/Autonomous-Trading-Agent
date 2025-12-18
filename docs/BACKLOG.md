@@ -14,7 +14,7 @@
 
 ### Week 6 Paper Trading Validation + Phase 3 Deployment
 **Priority**: 🔴 High  
-**Status**: Complete (Phase 3.1+3.2 Deployed)  
+**Status**: Phase 3.1+3.2 Deployed, Monitoring  
 **Owner**: User
 
 **Goal**: Validate Phase 1+2 execution works correctly in live environment, deploy Phase 3 enhancements.
@@ -31,8 +31,21 @@
 - [x] Make go/no-go decision for Phase 3 implementation (GO - execution validated)
 - [x] **Phase 3.1 Deployed**: ATR-based trailing stops (18:07 UTC, PID 46125)
 - [x] **Phase 3.2 Deployed**: Multi-timeframe RSI confirmation (18:24 UTC, PID 46592)
-- [ ] Collect 3-5 clean trades with Phase 3.1+3.2 for analysis
+- [ ] **Wait 3-5 days**: Monitor orphaned position exit, collect first Phase 3 entry
+- [ ] Validate skip_multi_tf and trail_update logs
+- [ ] Collect 5-10 clean trades with Phase 3.1+3.2 for analysis
 - [ ] Run analyze_recent_trades.py to check Phase 3 performance
+
+**Next Steps** (After 3-5 Days):
+1. **Shadow ML Decision**: Enable ML_SHADOW_ENABLED=true if Phase 3 stable (start collecting training data)
+   - ML stays dormant, only logs features + outcomes
+   - Zero risk to execution (try/except wrapper)
+   - Target: 500+ labeled trades over 6 months
+2. **Phase 3.3 Evaluation**: Assess need for additional enhancements based on Phase 3.1+3.2 results:
+   - ATR acceleration (tighten trail as profit grows)
+   - Partial profit-taking (scale out at milestones)
+   - Time-based stops (exit stale positions)
+3. **Live Trading Consideration**: If Phase 3 Sharpe ≥ 1.0, consider moving to real money
 
 **Acceptance**:
 - ✅ Bracket orders place correctly (stop-loss, take-profit)
@@ -61,17 +74,24 @@
 - [x] Design document created ([PHASE3_TRAILING_STOP_DESIGN.md](PHASE3_TRAILING_STOP_DESIGN.md))
 - [x] Researched Alpaca order.replace() API
 - [x] Implement trailing stop logic in alpaca_rsi_bot.py (Dec 18, 17:47 UTC)
-- [x] Deploy to paper trading (running on droplet PID 44977)
+- [x] Deploy to paper trading (running on droplet PID 46592)
 - [ ] Validate trail behavior with first profitable position
 - [ ] Backtest vs Phase 2 baseline after live validation (target: +10% Sharpe)
 
 **Phase 3.2 - Multi-Timeframe RSI**:
 - [x] Design document created ([PHASE3_MULTI_TF_RSI_DESIGN.md](PHASE3_MULTI_TF_RSI_DESIGN.md))
 - [x] Selected approach: Option B (5m <25, 15m <50)
-- [ ] Implement 15-min RSI consolidation
-- [ ] Add multi-TF filter to entry logic
-- [ ] Backtest vs Phase 2 baseline (target: +10% Sharpe)
-- [ ] Deploy to paper trading if validated
+- [x] Implement 15-min RSI consolidation (Dec 18, 18:24 UTC)
+- [x] Add multi-TF filter to entry logic
+- [x] Deploy to paper trading (running on droplet PID 46592)
+- [ ] Validate skip_multi_tf logs with first new entry
+- [ ] Backtest vs Phase 2 baseline after collecting trades (target: +10% Sharpe)
+
+**Phase 3.3 - Additional Enhancements** (Optional):
+- [ ] Design ATR acceleration (tighten trail as profit increases)
+- [ ] Design partial profit-taking (scale out at +1ATR, +2ATR, +3ATR)
+- [ ] Design time-based stops (exit if no profit after 2 hours)
+- [ ] Evaluate need based on Phase 3.1+3.2 performance
 
 **Acceptance**:
 - Trailing stops: Sharpe improves ≥10% vs Phase 2 (target: 0.88+)

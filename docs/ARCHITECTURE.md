@@ -2,10 +2,10 @@
 
 ## System Overview
 
-**Current Champion**: RSI Baseline with Phase 1+2 Enhancements (brain **DISABLED**)  
-**Status**: Deployed to DigitalOcean cloud (2025-12-18)  
-**Backtest Performance**: Sharpe 0.80, Win Rate 72.7%, Profit Factor 0.93 (2020-2024)  
-**Paper Trading**: Week 6 validation in progress (0 trades executed as of Dec 18 morning)
+**Current Champion**: RSI Baseline with Phase 1+2+3 Enhancements (brain **DISABLED**)  
+**Status**: Deployed to DigitalOcean cloud (2025-12-18, PID 46592)  
+**Backtest Performance**: Phase 1+2 Sharpe 0.80, Win Rate 72.7% (2020-2024)  
+**Paper Trading**: Phase 3.1+3.2 monitoring in progress (deployed 18:24 UTC)
 
 ```
 Market Data (5m bars)
@@ -17,8 +17,8 @@ Market Data (5m bars)
    ┌──────────────────────────────────────────────┐
    │  Phase 1 Filters (Quality Gates)            │
    │  ├─ Time-of-day (10:00-15:30 ET)           │
-   │  ├─ Volatility regime (vol_z > 0.5)        │
-   │  └─ Volume confirmation (volm_z > 1.0)      │
+   │  ├─ Volatility regime (vol_z > 0.2)         │
+   │  └─ Volume confirmation (volm_z > 0.3)      │
    └──────────────────────────────────────────────┘
         ↓
    ┌──────────────────────────────────────────────┐
@@ -28,6 +28,11 @@ Market Data (5m bars)
    │  └─ BB confirmation (bb_z < -0.8)           │
    └──────────────────────────────────────────────┘
         ↓
+   ┌──────────────────────────────────────────────┐
+   │  Phase 3.2 Multi-TF Confirmation (NEW)       │
+   │  └─ 15-min RSI < 50 (skip if >= 50)         │
+   └──────────────────────────────────────────────┘
+        ↓
    RSI Signal (enter <threshold, exit >75)
         ↓
    Position Sizing (0.25% equity cap)
@@ -35,6 +40,12 @@ Market Data (5m bars)
    Risk Guards (30m hold, -1% daily stop)
         ↓
    Order Execution (bracket: 1x ATR stop, 2x ATR TP)
+        ↓
+   ┌──────────────────────────────────────────────┐
+   │  Phase 3.1 Trailing Stops (NEW)              │
+   │  └─ Update stop to (price - 1.5*ATR)        │
+   │     when profitable, never widen             │
+   └──────────────────────────────────────────────┘
 ```
 
 ### Legacy Architecture (Archived)

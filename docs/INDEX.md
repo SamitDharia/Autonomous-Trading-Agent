@@ -15,10 +15,12 @@ Read in this order:
 - **[PROJECT_BRIEF.md](PROJECT_BRIEF.md)** — Trading system overview
   - Goal: Predict 60-min forward returns, size by confidence, enforce risk limits
   - Universe: TSLA (5m bars), expand to basket later
-  - Models: RSI baseline with Phase 1+2 filters (6 filters total) - **CURRENT CHAMPION**
+  - Models: RSI baseline with Phase 1+2+3 enhancements - **CURRENT CHAMPION**
   - Brain: Stacked ensemble archived (AUC 0.50-0.52, not promoted)
   - Risk: -1% daily stop, 0.25% position cap, ATR brackets (1x/2x)
-  - **Current status**: Phase 1+2 deployed to paper trading (Sharpe 0.80, Win Rate 72.7%)
+  - **Current status**: Phase 1+2+3 deployed to paper trading (PID 46592)
+  - **Phase 3.1**: ATR-based trailing stops (1.5 ATR, only when profitable)
+  - **Phase 3.2**: Multi-timeframe RSI filter (15-min RSI < 50 confirmation)
 
 - **[DEPLOYMENT.md](../DEPLOYMENT.md)** — Local deployment guide
   - Alpaca paper trading setup
@@ -37,16 +39,19 @@ Read in this order:
 - **[RSI_ENHANCEMENTS.md](RSI_ENHANCEMENTS.md)** — RSI strategy optimization roadmap
   - Phase 1: ✅ COMPLETE (time-of-day, volume, volatility filters)
   - Phase 2: ✅ COMPLETE (dynamic thresholds, trend filter, BB confirmation)
-  - Phase 3: 📐 DESIGNED (trailing stops, multi-timeframe RSI)
+  - Phase 3: ✅ DEPLOYED (trailing stops, multi-timeframe RSI)
   - Phase 4: ✅ IMPLEMENTED (shadow ML logging, disabled by default)
   - Backtest results: Baseline → Phase 1 → Phase 1+2 comparison
+  - Live performance: Monitoring Phase 3 enhancements
 
-- **[PHASE3_TRAILING_STOP_DESIGN.md](PHASE3_TRAILING_STOP_DESIGN.md)** — Trailing stop design (NEW)
+- **[PHASE3_TRAILING_STOP_DESIGN.md](PHASE3_TRAILING_STOP_DESIGN.md)** — Trailing stop design
+  - ✅ DEPLOYED (Dec 18, 2025 - 18:07 UTC)
   - ATR-based trailing stop via order.replace() API
   - Only trail when profitable, 1.5 ATR distance
   - Target: +10% Sharpe improvement
 
-- **[PHASE3_MULTI_TF_RSI_DESIGN.md](PHASE3_MULTI_TF_RSI_DESIGN.md)** — Multi-timeframe RSI design (NEW)
+- **[PHASE3_MULTI_TF_RSI_DESIGN.md](PHASE3_MULTI_TF_RSI_DESIGN.md)** — Multi-timeframe RSI design
+  - ✅ DEPLOYED (Dec 18, 2025 - 18:24 UTC)
   - 15-min RSI confirmation (5m <25, 15m <50)
   - Filters whipsaws when broader trend still bullish
   - Target: +10-15% Sharpe, ~25% trade reduction

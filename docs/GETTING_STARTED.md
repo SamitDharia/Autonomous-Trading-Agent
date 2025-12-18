@@ -7,9 +7,10 @@
 
 ## Current Strategy
 
-**Champion**: RSI Baseline with Phase 1+2 Enhancements  
-**Status**: Deployed to Alpaca paper trading (2025-12-17)  
-**Performance**: Sharpe 0.80, Win Rate 72.7% (2020-2024 backtest)
+**Champion**: RSI Baseline with Phase 1+2+3 Enhancements  
+**Status**: Deployed to Alpaca paper trading (2025-12-18, PID 46592)  
+**Performance**: Phase 1+2 Sharpe 0.80, Win Rate 72.7% (2020-2024 backtest)  
+**Phase 3**: Trailing stops + multi-timeframe RSI (monitoring in progress)
 
 **Note**: The original stacked ensemble (brain + experts) achieved AUC 0.50-0.52 and was **not promoted**. Code is preserved in `ensemble/` and `experts/` directories but is **not used** in production.
 
