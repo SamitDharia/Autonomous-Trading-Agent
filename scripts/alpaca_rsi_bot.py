@@ -220,6 +220,71 @@ def main() -> None:
                 ]
             )
 
+    def maybe_update_trailing_stop(
+        entry_price: float,
+        current_price: float,
+        atr_val: float,
+        pos_qty: float,
+    ) -> None:
+        """
+        Update stop-loss if price has moved favorably and we can lock in profit.
+        Phase 3.1: ATR-based trailing stop.
+        
+        Called every 5-min bar check when position is open.
+        """
+        # Only trail if profitable
+        unrealized_pnl = current_price - entry_price
+        if unrealized_pnl <= 0:
+            return  # Not profitable yet, don't trail
+        
+        # Calculate new trailing stop (price - 1.5 ATR)
+        trail_distance = 1.5 * atr_val
+        new_stop_price = current_price - trail_distance
+        
+        # Get current stop-loss order
+        try:
+            orders = api.list_orders(status='open', symbols=[args.symbol])
+            stop_orders = [o for o in orders if o.stop_price is not None]
+            if not stop_orders:
+                append_log("trail_warning", current_price, 0, pos_qty, "No stop-loss order found")
+                return
+            
+            stop_order = stop_orders[0]
+            old_stop_price = float(stop_order.stop_price)
+        except Exception as e:
+            append_log("trail_error", current_price, 0, pos_qty, f"Failed to get stop order: {e}")
+            return
+        
+        # Only move stop UP, never down
+        if new_stop_price <= old_stop_price:
+            return  # New stop worse than current, don't update
+        
+        # Ensure new stop is at least breakeven
+        min_acceptable_stop = entry_price - 0.01  # Allow $0.01 below entry
+        if new_stop_price < min_acceptable_stop:
+            new_stop_price = min_acceptable_stop  # Lock in at least breakeven
+        
+        # Sanity check: never move stop above current price
+        if new_stop_price >= current_price:
+            append_log("trail_error", current_price, 0, pos_qty, "Invalid stop: above current price")
+            return
+        
+        # Update stop-loss order
+        try:
+            api.replace_order(
+                order_id=stop_order.id,
+                qty=stop_order.qty,
+                time_in_force='day',
+                stop_price=round(new_stop_price, 2),
+            )
+            profit_secured = new_stop_price - entry_price
+            msg = f"Stop ${old_stop_price:.2f} → ${new_stop_price:.2f} (profit secured: ${profit_secured:.2f})"
+            print(f"[TRAIL] {msg}")
+            append_log("trail_update", current_price, 0, pos_qty, msg)
+        except Exception as e:
+            append_log("trail_error", current_price, 0, pos_qty, f"Failed to update stop: {e}")
+            # Original stop still active, safe to continue
+
     def run_once() -> None:
         acct = api.get_account()
         equity = float(acct.equity)
@@ -254,13 +319,24 @@ def main() -> None:
 
         # Current position?
         pos_qty = 0.0
+        entry_price = None
         try:
             pos = api.get_position(args.symbol)
             pos_qty = float(pos.qty)
+            entry_price = float(pos.avg_entry_price)
         except Exception:
             pos_qty = 0.0
 
         if pos_qty != 0:
+            # Phase 3.1: Update trailing stop if profitable
+            if pos_qty > 0 and entry_price is not None:
+                maybe_update_trailing_stop(
+                    entry_price=entry_price,
+                    current_price=price,
+                    atr_val=atr_val,
+                    pos_qty=pos_qty,
+                )
+            
             # If already long and RSI > exit threshold, flatten
             if pos_qty > 0 and rsi_val > rsi_high:
                 api.close_position(args.symbol)
