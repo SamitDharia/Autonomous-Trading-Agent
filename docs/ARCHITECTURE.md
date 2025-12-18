@@ -3,8 +3,9 @@
 ## System Overview
 
 **Current Champion**: RSI Baseline with Phase 1+2 Enhancements (brain **DISABLED**)  
-**Status**: Deployed to Alpaca paper trading (2025-12-17)  
-**Backtest Performance**: Sharpe 0.80, Win Rate 72.7%, Profit Factor 0.93 (2020-2024)
+**Status**: Deployed to DigitalOcean cloud (2025-12-18)  
+**Backtest Performance**: Sharpe 0.80, Win Rate 72.7%, Profit Factor 0.93 (2020-2024)  
+**Paper Trading**: Week 6 validation in progress (0 trades executed as of Dec 18 morning)
 
 ```
 Market Data (5m bars)
@@ -299,9 +300,70 @@ Models uploaded to **Object Store**:
 **Workflow**:
 1. Train models in QC Research notebook
 2. Export JSONs to local `/models/`
-3. Backtest in QC Web IDE (validate brain performance)
-4. Run paper trading locally (`scripts/paper_trade.py`)
-5. Promote to live only after 1-2 weeks of stable paper results
+3. Backtest in QC Web IDE (validate performance)
+4. Deploy to cloud (DigitalOcean droplet, Ubuntu 22.04)
+5. Run paper trading 24/7 (`scripts/alpaca_rsi_bot.py`)
+6. Promote to live only after 60 days of stable results (Sharpe ≥1.0)
+
+---
+
+## Deployment Architecture
+
+### Local Development
+- Python 3.10+ with venv
+- Backtests run on QuantConnect LEAN (local or cloud)
+- Paper trading via Alpaca API (local script)
+
+### Cloud Production
+- **Platform**: DigitalOcean Frankfurt droplet ($6/month)
+- **OS**: Ubuntu 22.04 LTS (1GB RAM, 25GB SSD)
+- **Process**: nohup background process, survives SSH disconnect
+- **Monitoring**: CSV logs (`alpaca_rsi_log.csv`), PID tracking
+- **Auto-restart**: Cron job (`@reboot`) for droplet reboots
+- **Security**: SSH key auth, firewall (only port 22), API keys in .env
+
+See [CLOUD_DEPLOYMENT.md](CLOUD_DEPLOYMENT.md) for full setup guide.
+
+---
+
+## Enhancement Roadmap
+
+### Phase 1: Quality Filters ✅ (Complete)
+- Time-of-day filter (10:00-15:30 ET, avoid open/close volatility)
+- Volume confirmation (volm_z > 1.0, only trade on volume spikes)
+- Volatility regime (vol_z > 0.5, avoid low-vol chop)
+- **Result**: Sharpe -0.09 → 0.41 (turned losing → profitable)
+
+### Phase 2: Dynamic Logic ✅ (Complete)
+- Dynamic RSI thresholds (20/25/30 based on trend + volatility)
+- Trend filter (ema200_rel > -5%, no entries in downtrends)
+- Bollinger Band confirmation (bb_z < -0.8, only extreme oversold)
+- **Result**: Sharpe 0.41 → 0.80 (+97% improvement)
+
+### Phase 3: Advanced Techniques 📐 (Designed, Ready for Implementation)
+**Phase 3.1 - Trailing ATR Stop**:
+- ATR-based trailing stop via Alpaca order.replace() API
+- Only trail when profitable, never move stop down
+- Trail distance: 1.5 ATR recommended
+- **Target**: +10% Sharpe improvement (0.80 → 0.88)
+- **Design**: [PHASE3_TRAILING_STOP_DESIGN.md](PHASE3_TRAILING_STOP_DESIGN.md)
+
+**Phase 3.2 - Multi-Timeframe RSI**:
+- 15-min RSI confirmation (5m <25, 15m <50)
+- Filters whipsaws when broader trend still bullish
+- Pandas resample for bar consolidation
+- **Target**: +10-15% Sharpe, ~25% trade reduction
+- **Design**: [PHASE3_MULTI_TF_RSI_DESIGN.md](PHASE3_MULTI_TF_RSI_DESIGN.md)
+
+**Combined Goal**: Sharpe 0.80 → **1.0+** (required for live deployment)
+
+### Phase 4: ML Shadow Mode ✅ (Implemented, Disabled by Default)
+- Zero-risk data collection infrastructure (ml/shadow.py)
+- Logs market state + bot decision for future ML research
+- Try/except wrapper prevents execution errors
+- Disabled by default, enable via ML_SHADOW_ENABLED=true
+- **Goal**: Collect 500+ trades over 6 months, analyze if ML improves expectancy
+- **Docs**: [ml/README.md](../ml/README.md)
 
 ---
 
@@ -309,25 +371,32 @@ Models uploaded to **Object Store**:
 
 ### ✅ Implemented
 - Feature builder with 15+ indicators
-- 3 expert models (RSI, MACD, Trend) with JSON loaders
-- Brain ensemble with regime inputs
+- 3 expert models (RSI, MACD, Trend) with JSON loaders (archived, not in use)
+- Brain ensemble with regime inputs (archived, AUC 0.50-0.52)
+- RSI Phase 1+2 enhancements (Sharpe 0.80, Win Rate 72.7%)
 - Daily P&L stop + indicator readiness guards
 - ATR-based position sizing with caps
 - Bracket orders (stop-loss + take-profit)
 - Local backtest harness
-- Alpaca paper trading script
+- Alpaca paper trading script (alpaca_rsi_bot.py)
+- Cloud deployment on DigitalOcean (running 24/7)
+- Phase 3 design documents (trailing stops, multi-TF RSI)
+- Phase 4 ML shadow logging infrastructure
+- Analysis tools (analyze_recent_trades.py)
 
-### 🔄 In Progress
-- Brain retraining on 2018-2024 TSLA data (AUC currently ~0.50-0.52)
-- Walk-forward validation pipeline
-- Paper trading certification (1-2 week run)
+### 🔄 In Progress (Week 6)
+- First trade execution validation (waiting for Dec 18, 10 AM ET)
+- Bracket order validation (stop-loss, take-profit)
+- Temporary filter loosening for faster validation
 
-### ⏳ Planned
+### ⏳ Planned (Weeks 7-8 and Beyond)
+- Phase 3.1 implementation (trailing stops)
+- Phase 3.2 implementation (multi-TF RSI)
+- 60-day paper trading certification (Sharpe ≥1.0, max drawdown <2%)
 - Multi-symbol support (AAPL, MSFT, SPY)
-- Volatility regime detection
-- RL-based position sizing
-- Automated model promotion workflow
-- Trade journal & performance analytics
+- Automated model retraining pipeline
+- Performance analytics dashboard
+- Tiny live deployment ($1000 capital)
 
 ---
 
@@ -336,10 +405,15 @@ Models uploaded to **Object Store**:
 ## See Also
 - **[PROJECT_BRIEF.md](PROJECT_BRIEF.md)** — System goals and risk controls
 - **[GETTING_STARTED.md](GETTING_STARTED.md)** — Setup and run instructions
+- **[DEPLOYMENT.md](../DEPLOYMENT.md)** — Local deployment guide
+- **[CLOUD_DEPLOYMENT.md](CLOUD_DEPLOYMENT.md)** — Cloud deployment guide (DigitalOcean, AWS, GCP)
+- **[RSI_ENHANCEMENTS.md](RSI_ENHANCEMENTS.md)** — Phase 1-4 roadmap and backtest results
+- **[PHASE3_TRAILING_STOP_DESIGN.md](PHASE3_TRAILING_STOP_DESIGN.md)** — Trailing stop design
+- **[PHASE3_MULTI_TF_RSI_DESIGN.md](PHASE3_MULTI_TF_RSI_DESIGN.md)** — Multi-timeframe RSI design
 - **[DEVELOPMENT_LOG.md](DEVELOPMENT_LOG.md)** — Recent decisions and results
 - **[PLAN.md](PLAN.md)** — 8-week roadmap with status
 - **[INDEX.md](INDEX.md)** — Documentation navigation
 
 ---
 
-**Last updated**: 2025-12-17
+**Last updated**: 2025-12-18

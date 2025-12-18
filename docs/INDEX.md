@@ -20,18 +20,36 @@ Read in this order:
   - Risk: -1% daily stop, 0.25% position cap, ATR brackets (1x/2x)
   - **Current status**: Phase 1+2 deployed to paper trading (Sharpe 0.80, Win Rate 72.7%)
 
-- **[DEPLOYMENT.md](../DEPLOYMENT.md)** — Production deployment guide (NEW)
+- **[DEPLOYMENT.md](../DEPLOYMENT.md)** — Local deployment guide
   - Alpaca paper trading setup
   - Credential configuration
   - Running the bot (loop mode)
   - Monitoring and troubleshooting
   - Success criteria (5-7 day evaluation)
 
+- **[CLOUD_DEPLOYMENT.md](CLOUD_DEPLOYMENT.md)** — Cloud deployment guide (NEW)
+  - DigitalOcean, AWS EC2, Google Cloud setup
+  - SSH key configuration, security best practices
+  - Auto-restart on reboot (cron jobs)
+  - Monitoring and health checks
+  - Current deployment: DigitalOcean Frankfurt droplet ($6/month)
+
 - **[RSI_ENHANCEMENTS.md](RSI_ENHANCEMENTS.md)** — RSI strategy optimization roadmap
   - Phase 1: ✅ COMPLETE (time-of-day, volume, volatility filters)
   - Phase 2: ✅ COMPLETE (dynamic thresholds, trend filter, BB confirmation)
-  - Phase 3: ⏳ PLANNED (trailing stops, multi-timeframe, position scaling)
+  - Phase 3: 📐 DESIGNED (trailing stops, multi-timeframe RSI)
+  - Phase 4: ✅ IMPLEMENTED (shadow ML logging, disabled by default)
   - Backtest results: Baseline → Phase 1 → Phase 1+2 comparison
+
+- **[PHASE3_TRAILING_STOP_DESIGN.md](PHASE3_TRAILING_STOP_DESIGN.md)** — Trailing stop design (NEW)
+  - ATR-based trailing stop via order.replace() API
+  - Only trail when profitable, 1.5 ATR distance
+  - Target: +10% Sharpe improvement
+
+- **[PHASE3_MULTI_TF_RSI_DESIGN.md](PHASE3_MULTI_TF_RSI_DESIGN.md)** — Multi-timeframe RSI design (NEW)
+  - 15-min RSI confirmation (5m <25, 15m <50)
+  - Filters whipsaws when broader trend still bullish
+  - Target: +10-15% Sharpe, ~25% trade reduction
 
 ### Getting Started
 - **[GETTING_STARTED.md](GETTING_STARTED.md)** — Setup guide (NEW)
@@ -44,8 +62,9 @@ Read in this order:
 
 ### Development
 - **[DEVELOPMENT_LOG.md](DEVELOPMENT_LOG.md)** — Dated entries for decisions and results
-  - Latest: 2025-12-17 Phase 2 validation (Sharpe 0.80, deployed to paper trading)
-  - Previous: 2025-12-16 brain retraining (AUC 0.50-0.52, not promoted), Phase 1 implementation
+  - Latest: 2025-12-18 Week 6 (cloud deployment, ML infrastructure, Phase 3 planning)
+  - Previous: 2025-12-17 Phase 2 validation (Sharpe 0.80, deployed to paper trading)
+  - 2025-12-16 brain retraining (AUC 0.50-0.52, not promoted), Phase 1 implementation
   - Workflow: QC for research/backtests, local Alpaca for live/paper
   
 - **[PLAN.md](PLAN.md)** — 8-week roadmap
@@ -78,10 +97,10 @@ Read in this order:
 ├── DEPLOYMENT.md             # Production deployment guide
 ├── requirements.txt          # Python dependencies
 ├── /docs/                    # All documentation (you are here)
-├── /scripts/                 # Production scripts (3 files)
-│   ├── alpaca_rsi_bot.py           # Paper/live trading bot
-│   ├── backtest_phase1_comparison.py  # Validation framework
-│   └── set_alpaca_env.ps1          # Credential helper
+├── /scripts/                 # Production scripts (alpaca_rsi_bot.py, analyze_recent_trades.py)
+├── /ml/                      # Shadow ML logging (Phase 4, disabled by default)
+│   ├── shadow.py                   # Shadow logging functions
+│   └── README.md                   # ML infrastructure documentation
 ├── /features/                # Feature builder (indicators + regime)
 ├── /risk/                    # Position sizing, guards, kill-switches
 ├── /experts/                 # ARCHIVED: Level-1 expert models

@@ -1,6 +1,9 @@
-# Cloud Deployment Guide
+# Cloud Deployment Guide (24/7 Production)
 
-**Deploy your trading bot to a 24/7 cloud VM for reliable paper/live trading.**
+**Deploy your trading bot to a cloud VM for reliable 24/7 paper/live trading.**
+
+> 💡 **Just testing locally?** See [DEPLOYMENT.md](../DEPLOYMENT.md) for quick laptop setup instead.  
+> This guide is for **production-grade 24/7 deployment** on cloud infrastructure.
 
 This guide covers AWS, DigitalOcean, and Google Cloud setup. Choose based on your budget and experience level.
 

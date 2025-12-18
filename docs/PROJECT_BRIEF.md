@@ -93,29 +93,35 @@ On QuantConnect you can keep helpers inside `algo.py` to start. Upload the model
   - Backtest Results (2020-2024 TSLA): **Sharpe 0.80**, Win Rate 72.7%, Profit Factor 0.93
   - Phase 2 added +97% Sharpe improvement over Phase 1 (+0.39 absolute)
   - All 6 filters implemented: time-of-day, volatility, volume (Phase 1) + dynamic RSI, trend filter, BB confirmation (Phase 2)
-  - Deployed to Alpaca paper trading via [scripts/alpaca_rsi_bot.py](../scripts/alpaca_rsi_bot.py)
+  - Deployed to DigitalOcean cloud (Frankfurt, $6/month) running 24/7
+  - Bot running via [scripts/alpaca_rsi_bot.py](../scripts/alpaca_rsi_bot.py)
 - **Brain archived**: AUC 0.50-0.52 (no edge), code preserved in `ensemble/`, `experts/`, `models/`
 - **Current champion**: RSI baseline + Phase 1+2 filters (see [RSI_ENHANCEMENTS.md](docs/RSI_ENHANCEMENTS.md))
-- Comprehensive deployment guide: [DEPLOYMENT.md](DEPLOYMENT.md)
+- **Phase 3 designed**: Trailing stops + multi-TF RSI (target: Sharpe 1.0+), ready for implementation after Week 6 validation
+- **Phase 4 infrastructure**: ML shadow logging (ml/shadow.py), disabled by default, zero-risk data collection
+- Comprehensive deployment guides: [DEPLOYMENT.md](DEPLOYMENT.md) (local), [CLOUD_DEPLOYMENT.md](docs/CLOUD_DEPLOYMENT.md) (cloud)
 - CSV logging to `alpaca_rsi_log.csv`
 
-## Next steps (Week 6 - Monitoring)
-1) **Paper trading validation** (5-7 days): Monitor Sharpe ≥1.0, win rate ≥70%, compare vs backtest predictions
-2) **Infrastructure setup**: Drift monitoring (feature distribution checks), alert system (kill-switch notifications), daily P&L reports
-3) **Live trading decision** (Week 7): If paper successful → live deployment OR Phase 3 implementation (trailing stops, multi-timeframe, position scaling)
-3) **Paper trading certification** (Week 5-6): Deploy best-performing RSI variant to Alpaca paper for 2+ weeks. Monitor Sharpe ≥1.3, win rate ≥58%, max DD <2%.
-4) **Infrastructure Week** (Week 6): Build drift monitor (KS-test weekly), alert system (Slack webhook), daily P&L reports.
-5) **Brain future**: Revisit ML only if alternative data sources become available (order flow, sentiment, options). Current brain archived as reference - AUC 0.50-0.52 with public OHLCV data is expected ceiling.
+## Next steps (Week 6 - Execution Validation)
+1) **First trade execution** (Dec 18): Validate bracket orders work correctly (stop-loss + take-profit)
+2) **Collect 3-5 trades**: Temporary filter loosening (vol_z 0.2, volm_z 0.3) for faster validation
+3) **Performance analysis**: Run analyze_recent_trades.py to verify metrics match backtest
+4) **Go/No-Go decision**: If successful → Implement Phase 3 (trailing stops + multi-TF RSI), target Sharpe 1.0+
+5) **60-day certification** (Q1 2026): Paper run with Sharpe ≥1.0, max drawdown <2% before live deployment
+6) **Brain future**: Shadow ML logging will collect 500+ trades over 6 months for future model evaluation
 
 ---
 
 ## See Also
-- **[ARCHITECTURE.md](ARCHITECTURE.md)** — System design, module dependencies, data flow
-- **[GETTING_STARTED.md](GETTING_STARTED.md)** — Setup, run backtest, paper trading
-- **[DEVELOPMENT_LOG.md](DEVELOPMENT_LOG.md)** — Recent decisions and results
-- **[PLAN.md](PLAN.md)** — 8-week roadmap with status
-- **[INDEX.md](INDEX.md)** — Documentation navigation
+- **[ARCHITECTURE.md](docs/ARCHITECTURE.md)** — System design, module dependencies, data flow
+- **[GETTING_STARTED.md](docs/GETTING_STARTED.md)** — Setup, run backtest, paper trading
+- **[DEPLOYMENT.md](DEPLOYMENT.md)** — Local deployment guide
+- **[CLOUD_DEPLOYMENT.md](docs/CLOUD_DEPLOYMENT.md)** — Cloud deployment guide (DigitalOcean, AWS, GCP)
+- **[RSI_ENHANCEMENTS.md](docs/RSI_ENHANCEMENTS.md)** — Phase 1-4 roadmap and backtest results
+- **[DEVELOPMENT_LOG.md](docs/DEVELOPMENT_LOG.md)** — Recent decisions and results
+- **[PLAN.md](docs/PLAN.md)** — 8-week roadmap with status
+- **[INDEX.md](docs/INDEX.md)** — Documentation navigation
 
 ---
 
-**Last updated**: 2025-12-17
+**Last updated**: 2025-12-18

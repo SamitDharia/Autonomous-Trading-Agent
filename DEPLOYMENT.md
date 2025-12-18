@@ -1,8 +1,11 @@
-# Alpaca Paper Trading Deployment Guide
+# Alpaca Paper Trading Deployment Guide (Local)
 
 **Strategy**: RSI Baseline with Phase 1+2 Enhancements  
 **Status**: Ready for Paper Trading  
-**Last Updated**: 2025-12-17
+**Last Updated**: 2025-12-18
+
+> 💡 **Running 24/7?** See [CLOUD_DEPLOYMENT.md](docs/CLOUD_DEPLOYMENT.md) for DigitalOcean/AWS/GCP setup instead.  
+> This guide is for **local testing on your laptop** only.
 
 ## Backtest Performance (2020-2024)
 

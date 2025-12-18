@@ -23,6 +23,10 @@ dist/
 # IDEs
 .vscode/
 .idea/
+*.swp
+*.swo
+*~
+.vs/
 
 # QuantConnect cache and outputs
 qc org wkspc dir/
@@ -34,6 +38,15 @@ output/
 
 # Alpaca logs (generated at runtime)
 alpaca_rsi_log.csv
+ml_shadow_log.jsonl
+
+# Environment files (credentials)
+.env
+.env.local
+
+# Bot runtime files
+bot.pid
+nohup.out
 
 # Old brain artifacts (archived)
 brains/

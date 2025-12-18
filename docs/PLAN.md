@@ -90,19 +90,30 @@
 
 ---
 
-## Week 6 — Paper Trading Monitoring 🔄
+## Week 6 — Cloud Deployment & Execution Validation 🔄
 **Status**: In Progress (Dec 2025)
 
-- ✅ Deployed Phase 1+2 strategy to Alpaca paper trading
-- 🔄 Monitor 5-7 days for validation (target: Sharpe ≥1.0, win rate ≥70%)
-- ⏳ Drift monitor (feature distribution checks)
-- ⏳ Alert system (Slack/email on kill-switch triggers)
-- ⏳ Daily P&L report automation
+- ✅ Deployed bot to DigitalOcean droplet (Frankfurt, $6/month)
+- ✅ Fixed timezone bug (UTC → US/Eastern for time_of_day filter)
+- ✅ Created cloud deployment guide ([CLOUD_DEPLOYMENT.md](CLOUD_DEPLOYMENT.md))
+- ✅ Loosened filters temporarily for faster execution validation (vol_z 0.2, volm_z 0.3)
+- ✅ Implemented Phase 4 shadow ML logging infrastructure (ml/shadow.py)
+- ✅ Designed Phase 3.1 trailing stops ([PHASE3_TRAILING_STOP_DESIGN.md](PHASE3_TRAILING_STOP_DESIGN.md))
+- ✅ Designed Phase 3.2 multi-TF RSI ([PHASE3_MULTI_TF_RSI_DESIGN.md](PHASE3_MULTI_TF_RSI_DESIGN.md))
+- ✅ Created analyze_recent_trades.py for performance analysis
+- 🔄 Waiting for first trade execution (Dec 18, 10 AM ET market open)
+- ⏳ Validate bracket orders work correctly (stop-loss, take-profit)
+- ⏳ Collect 3-5 trades this week for validation
+- ⏳ Make go/no-go decision for Phase 3 implementation
 
 **Deliverables**:
-- Paper trading logs in `alpaca_rsi_log.csv`
-- Performance comparison vs backtest predictions
-- Monitoring infrastructure
+- ✅ Bot running 24/7 on cloud (DigitalOcean droplet)
+- ✅ Phase 3 design documents (trailing stops, multi-TF RSI)
+- ✅ Phase 4 ML infrastructure (shadow logging, disabled by default)
+- ✅ Analysis tools (analyze_recent_trades.py)
+- 🔄 First trade execution validation
+- ⏳ Weekly performance reports
+- ⏳ Drift detection alerts
 
 **Current Focus**:
 - Backtest Phase 1 RSI enhancements (2020-2024 TSLA)
