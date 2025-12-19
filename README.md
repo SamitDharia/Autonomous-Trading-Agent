@@ -243,12 +243,13 @@ pytest tests/ -v
 - **Models**: Train in QC, export JSON, sync to local `/models/`
 
 ## Recent Changes (Dec 2025)
+- ✅ **Phase 3 Deployed** (Dec 18): Trailing stops + multi-timeframe RSI filter
 - ✅ Removed 1000+ unused files (QC data, logs, duplicates): 30% repo size reduction
 - ✅ Integrated feature builder + risk guards into `algo.py`
 - ✅ Consolidated documentation (PROJECT_BRIEF as master, deprecated BOT_SPEC)
 - ✅ Created INDEX.md for navigation
 
-See **[CLEANUP_SUMMARY.md](CLEANUP_SUMMARY.md)** for full cleanup details.
+See **[docs/DEVELOPMENT_LOG.md](docs/DEVELOPMENT_LOG.md)** for full project history.
 
 ## License
 MIT
