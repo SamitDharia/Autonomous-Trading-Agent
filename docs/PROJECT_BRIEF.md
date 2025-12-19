@@ -89,28 +89,36 @@ algo.py                       # QuantConnect main algorithm (wires it all)
 On QuantConnect you can keep helpers inside `algo.py` to start. Upload the model files to QC Object Store and load them in `Initialize()`.
 
 ## Current status (Dec 2025)
-- **Phase 1+2 Complete & Deployed** (2025-12-17):
+- **Phase 1+2+3 Deployed** (2025-12-18):
   - Backtest Results (2020-2024 TSLA): **Sharpe 0.80**, Win Rate 72.7%, Profit Factor 0.93
   - Phase 2 added +97% Sharpe improvement over Phase 1 (+0.39 absolute)
-  - All 6 filters implemented: time-of-day, volatility, volume (Phase 1) + dynamic RSI, trend filter, BB confirmation (Phase 2)
+  - All 8 filters implemented:
+    - Phase 1: time-of-day, volatility, volume
+    - Phase 2: dynamic RSI, trend filter, BB confirmation
+    - Phase 3: multi-timeframe RSI (15-min confirmation)
+  - Phase 3 enhancements: ATR-based trailing stops (1.5x ATR trail)
   - Deployed to DigitalOcean cloud (Frankfurt, $6/month) running 24/7
-  - Bot running via [scripts/alpaca_rsi_bot.py](../scripts/alpaca_rsi_bot.py)
+  - Bot running via [scripts/alpaca_rsi_bot.py](../scripts/alpaca_rsi_bot.py) (PID 46592)
 - **Brain archived**: AUC 0.50-0.52 (no edge), code preserved in `ensemble/`, `experts/`, `models/`
-- **Current champion**: RSI baseline + Phase 1+2 filters (see [RSI_ENHANCEMENTS.md](docs/RSI_ENHANCEMENTS.md))
-- **Phase 3 designed**: Trailing stops + multi-TF RSI (target: Sharpe 1.0+), ready for implementation after Week 6 validation
+- **Current champion**: RSI baseline + Phase 1+2+3 (see [RSI_ENHANCEMENTS.md](RSI_ENHANCEMENTS.md))
+- **Validation status**: Phase 3 deployed, awaiting market volatility (expected Jan 2026)
 - **Phase 4 infrastructure**: ML shadow logging (ml/shadow.py), disabled by default, zero-risk data collection
-- Comprehensive deployment guides: [DEPLOYMENT.md](DEPLOYMENT.md) (local), [CLOUD_DEPLOYMENT.md](docs/CLOUD_DEPLOYMENT.md) (cloud)
+- Comprehensive deployment guides: [DEPLOYMENT.md](../DEPLOYMENT.md) (local), [CLOUD_DEPLOYMENT.md](CLOUD_DEPLOYMENT.md) (cloud)
 - CSV logging to `alpaca_rsi_log.csv`
 
-## Next steps (Week 7+ - Phase 3 Implementation)
+## Next steps (Week 7+ - Phase 3 Validation)
 1) **✅ Week 6 Complete**: First trade executed (Dec 18, 15:54 UTC), bracket orders validated, filters restored (vol_z 0.2, volm_z 0.3)
-2) **Choose Phase 3 enhancement** (trailing stops OR multi-TF RSI):
-   - **Option A**: Phase 3.1 Trailing Stops (ATR-based, reduce premature stop-outs, target: +0.1-0.2 Sharpe)
-   - **Option B**: Phase 3.2 Multi-TF RSI (15-min confirmation, filter false signals, target: +0.1-0.15 Sharpe)
-3) **Implement chosen enhancement**: Backtest → paper deploy → validate with 10+ trades
-4) **Performance analysis**: Run analyze_recent_trades.py to verify metrics match backtest
-5) **60-day certification** (Q1 2026): Paper run with Sharpe ≥1.0, max drawdown <2% before live deployment
-6) **Brain future**: Shadow ML logging will collect 500+ trades over 6 months for future model evaluation
+2) **✅ Phase 3.1+3.2 Deployed** (Dec 18, 18:24 UTC):
+   - Phase 3.1: ATR-based trailing stops (1.5x ATR trail, breakeven protection)
+   - Phase 3.2: Multi-timeframe RSI (require 15-min RSI < 50 for entry)
+   - Both enhancements live on droplet (PID 46592)
+3) **🔄 Holiday Period** (Dec 19 - Jan 3): Low volatility expected, zero trades likely
+4) **Validation Period** (Jan 6-31, 2026): Collect 5-15 Phase 3 trades during TSLA catalysts:
+   - Early Jan: Q4 delivery numbers
+   - Late Jan: Q4 earnings (high volatility week)
+5) **Performance analysis**: Run analyze_recent_trades.py after 5+ trades collected
+6) **60-day certification** (Q1 2026): Paper run with Sharpe ≥1.0, max drawdown <2% before live deployment
+7) **Brain future**: Enable shadow ML logging after Phase 3 validation (collect 500+ trades over 6 months)
 
 ---
 
@@ -126,4 +134,4 @@ On QuantConnect you can keep helpers inside `algo.py` to start. Upload the model
 
 ---
 
-**Last updated**: 2025-12-18
+**Last updated**: 2025-12-19
