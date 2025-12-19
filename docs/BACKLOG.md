@@ -382,102 +382,130 @@ Use `scripts/create_github_issues.ps1` to batch-create from this file.
 
 ## 🚀 Maximum Returns Path (Aggressive Growth Strategy)
 
-**Target**: 15-25% annual returns  
+**Target**: 12-22% annual returns (realistic with risk controls)  
 **Risk Tolerance**: Moderate-High  
-**Timeline**: 3-6 months implementation  
-**Capital Requirement**: $10K+ recommended (works with $2K but lower absolute $)
+**Timeline**: 6-12 months implementation  
+**Capital Requirement**: $5K minimum (realistic), $10K+ recommended
+
+**Capital Reality Check**:
+- $2K account: Phase 1 only (0.5-1% sizing) - commissions eat profits
+- $5K account: Can handle Phase 2 (2% sizing = $100/trade)
+- $10K+ account: Full strategy (all phases, proper diversification)
 
 ### Strategy Overview
 
-Current baseline (Phase 3): ~0.5-1% annual return with ultra-conservative approach (single symbol, 0.25% sizing, strict filters, 9 trades/year). This section outlines the path to 15-25% returns by aggressively scaling up trade frequency, diversification, and position sizing.
+Current baseline (Phase 3): ~0.5-1% annual return with ultra-conservative approach (single symbol, 0.25% sizing). **Note**: Deployed filters (vol_z > 0.2, volm_z > 0.3) are already 2-3x looser than backtest (0.5/1.0), yielding estimated ~20 trades/year (vs 9 in backtest). This section outlines the path to 12-22% returns by scaling trade frequency, diversification, and position sizing.
 
 ### Implementation Roadmap
 
-#### **Phase 1: Multi-Symbol Expansion** (Week 1-2)
-**Goal**: 5x trade opportunities through diversification
+#### **Phase 1: Multi-Symbol Expansion** (Week 1-3)
+**Goal**: 3-4x trade opportunities through diversification
 
 **Actions**:
 - Add 4 more liquid symbols: AAPL, MSFT, NVDA, SPY
 - Same Phase 3 strategy (RSI mean-reversion + 8 filters)
-- Stagger entries to avoid correlation risk (max 2 positions simultaneously)
+- **Correlation monitoring**: Calculate 30-day rolling correlation between pairs
+- Stagger entries: Max 2 positions if correlation < 0.75, else max 1 position
 
 **Code Changes**:
 ```python
 # In alpaca_rsi_bot.py:
 SYMBOLS = ["TSLA", "AAPL", "MSFT", "NVDA", "SPY"]  # Was: symbol = "TSLA"
-MAX_CONCURRENT_POSITIONS = 2  # Risk control
+MAX_CONCURRENT_POSITIONS = 2  # Dynamic based on correlation
+CORRELATION_THRESHOLD = 0.75  # If avg > 0.75, reduce to 1 position
 ```
 
 **Expected Impact**:
-- Trade frequency: 9/year → 45/year (5x)
-- Annual return: 0.5% → 2.5-3%
-- Risk: Low (diversified, uncorrelated signals)
+- Trade frequency: 20/year → 60-80/year (3-4x, accounting for correlation)
+- Annual return: 0.5-1% → 2-4%
+- Risk: Low (but note: tech stocks are 0.7-0.9 correlated in crashes)
 
-**Backtest Required**: Validate each symbol individually on 2020-2024 data
+**Backtest Required**: 
+- Validate each symbol individually on 2020-2024 data (require Sharpe > 0.5)
+- Test correlation matrix during COVID crash, 2022 correction
+- Verify max drawdown < 5% with 2 concurrent positions
+
+**Validation Gate**: If any symbol Sharpe < 0.5 or correlation crisis causes >8% drawdown, exclude that symbol
 
 ---
 
-#### **Phase 2: Aggressive Position Sizing** (Week 2-3)
-**Goal**: 4-8x returns per trade through larger positions
+#### **Phase 2: Aggressive Position Sizing** (Week 3-5)
+**Goal**: 6-8x returns per trade through larger positions
 
 **Actions**:
-- Increase from 0.25% → 2% per trade
+- Increase from 0.25% → 2% per trade (8x sizing)
 - Maintain strict risk controls (1.5 ATR stop-loss, daily -3% kill-switch)
-- With 5 symbols, max exposure = 10% (2% × 5 positions)
+- With 5 symbols, max exposure = 10% (2% × 5 positions, but max 2 concurrent)
+- **Conservative ramp**: Start with 1% sizing for 20 trades, then 2% if validated
 
 **Code Changes**:
 ```python
 position_size = 0.02  # 2% per trade (vs 0.25% current)
 daily_stop = -0.03    # -3% kill-switch (vs -1% current)
+max_total_exposure = 0.10  # Never exceed 10% total
 ```
 
 **Expected Impact**:
-- Annual return: 2.5% → 10-12% (with multi-symbol)
-- Max drawdown: 0% → 5-8% (acceptable for growth account)
-- Risk: Moderate (8x larger losses when wrong, but 1.5 ATR stops limit damage)
+- Annual return: 2-4% → 8-12% (with multi-symbol + 2% sizing)
+- Max drawdown: 1-2% → 6-10% (acceptable for growth account)
+- Risk: Moderate-High (8x larger losses when wrong, but 1.5 ATR stops limit damage)
 
-**Stress Test**: Simulate 2020 COVID crash, 2022 Fed tightening on 2% sizing
+**Stress Test Required**: 
+- Backtest on 2020 COVID crash (Feb-Mar): Verify max drawdown < 12%
+- Backtest on 2022 Fed tightening: Verify monthly drawdown < 8%
+- Paper trade 1 month with 2% sizing: Collect 15-25 trades
+
+**Validation Gate**: 
+- If paper trading max drawdown > 10% → reduce to 1% sizing
+- If daily loss ever hits -3% → halt trading, analyze issue
 
 ---
 
-#### **Phase 3: Loosen Filters for Higher Frequency** (Week 4-6)
-**Goal**: 3-4x more trades through relaxed entry criteria
+#### **Phase 3: Loosen Filters for Higher Frequency** (Week 6-10)
+**Goal**: 1.5-2x more trades through relaxed entry criteria
 
-**Current Bottleneck**:
-- vol_z > 0.2, volm_z > 0.3 reject 90% of setups
-- Only 9 trades/year is too conservative for growth
+**Current Reality**:
+- Deployed filters: vol_z > 0.2, volm_z > 0.3 (already 2-3x looser than backtest 0.5/1.0)
+- Estimated current frequency: ~20 trades/year (vs 9 in backtest with strict filters)
+- Further loosening is HIGH RISK - backtest showed baseline (no filters) was **losing money**
 
 **Actions**:
 - Test multiple filter configurations in backtest:
-  - **Option A** (Conservative): vol_z > 0.1, volm_z > 0.15
-  - **Option B** (Moderate): vol_z > 0.05, volm_z > 0.1  
-  - **Option C** (Aggressive): vol_z > 0.0, volm_z > 0.05 (volume confirmation only)
-- Validate win rate doesn't drop below 65% (current: 73%)
-- Choose configuration with highest Sharpe ratio
+  - **Option A** (Conservative): vol_z > 0.15, volm_z > 0.25 (slight loosen)
+  - **Option B** (Moderate): vol_z > 0.1, volm_z > 0.2  
+  - **Option C** (Aggressive): vol_z > 0.05, volm_z > 0.15
+- **CRITICAL**: Historical data shows baseline (no vol/volume filters) had:
+  - Win rate: 64% (vs 73% with filters)
+  - Sharpe: -0.11 (NEGATIVE - lost money)
+- Choose configuration with highest Sharpe ratio **AND** win rate ≥ 65%
 
 **Code Changes**:
 ```python
 # Test in backtest, then deploy winner:
-VOL_THRESHOLD = 0.05   # vs 0.2 current (4x looser)
-VOLM_THRESHOLD = 0.1   # vs 0.3 current (3x looser)
+VOL_THRESHOLD = 0.1    # vs 0.2 current (conservative loosen)
+VOLM_THRESHOLD = 0.2   # vs 0.3 current
 ```
 
 **Expected Impact**:
-- Trade frequency: 45/year → 120-150/year (with 5 symbols)
-- Win rate: 73% → 65-68% (acceptable tradeoff)
-- Annual return: 10-12% → 15-20%
-- Risk: Moderate-High (more false signals, need tight execution)
+- Trade frequency: 60-80/year → 100-120/year (with 5 symbols)
+- Win rate: 70-73% → 66-70% (acceptable if Sharpe holds)
+- Annual return: 8-12% → 12-16%
+- Risk: HIGH (approaching losing territory - need careful validation)
 
-**Validation**: Paper trade 1 month, collect 20-30 trades, verify win rate ≥ 65%
+**Validation Gate** (STRICT):
+- Paper trade 2 months, collect 40-60 trades minimum
+- Require: Win rate ≥ 66% AND Sharpe ≥ 0.65 AND Profit Factor ≥ 1.3
+- **If any metric fails**: DO NOT deploy, revert to Phase 2 filters
+- **Alternative**: Selective loosening (relax volm_z only, keep vol_z at 0.2)
 
 ---
 
-#### **Phase 4: Add Momentum Strategy** (Week 8-12)
+#### **Phase 4: Add Momentum Strategy** (Month 3-5)
 **Goal**: Diversify signal types (mean-reversion + momentum)
 
 **Rationale**: RSI mean-reversion only captures one market pattern. Add breakout/trend-following for stronger directional moves.
 
-**New Entry Patterns**:
+**New Entry Patterns** (each requires separate design/backtest):
 1. **Bollinger Band Breakouts**: Price breaks above upper BB with volume surge
 2. **MACD Momentum**: MACD crosses above signal + histogram expanding
 3. **Gap-Fill Setups**: Stock gaps down >2%, first bounce on volume
@@ -488,15 +516,25 @@ VOLM_THRESHOLD = 0.1   # vs 0.3 current (3x looser)
 if rsi_mean_reversion_signal():
     enter_long_rsi()  # Current Phase 3 logic
 elif momentum_breakout_signal():
-    enter_long_momentum()  # New logic
+    enter_long_momentum()  # New logic with different exit rules
 ```
 
 **Expected Impact**:
-- Trade frequency: 150/year → 200-250/year (combined strategies)
-- Annual return: 15-20% → 20-25%
-- Risk: High (momentum trades have lower win rate ~55-60%, need larger targets)
+- Trade frequency: 100-120/year → 150-200/year (combined strategies)
+- Annual return: 12-16% → 16-20%
+- Risk: High (momentum trades have lower win rate ~55-60%, need 3:1 R/R)
 
-**Development Time**: 4-6 weeks (strategy design + backtest + validation)
+**Development Requirements**:
+- Design 3 momentum patterns (2 weeks)
+- Backtest each on 2020-2024 data (2 weeks)
+- Combine strategies, test correlation (1 week)
+- Paper validate 50+ momentum trades (6-8 weeks)
+- **Total time**: 10-13 weeks minimum
+
+**Validation Gate**:
+- Each momentum pattern must achieve Sharpe > 0.4 standalone
+- Combined strategy Sharpe > Phase 3 Sharpe + 0.2
+- Max drawdown < 12%
 
 ---
 
@@ -531,31 +569,43 @@ if ml_enabled and ml_expectancy(features) < 5.0:
 
 | Phase | Implementation | Symbols | Position Size | Trades/Year | Win Rate | Annual Return | Risk Level |
 |-------|----------------|---------|---------------|-------------|----------|---------------|------------|
-| **Current** | Complete | 1 | 0.25% | 9 | 73% | 0.5-1% | Low |
-| **Phase 1** | Week 1-2 | 5 | 0.25% | 45 | 73% | 2.5-3% | Low |
-| **Phase 2** | Week 2-3 | 5 | 2% | 45 | 73% | 10-12% | Moderate |
-| **Phase 3** | Week 4-6 | 5 | 2% | 120-150 | 65-68% | 15-20% | Mod-High |
-| **Phase 4** | Week 8-12 | 5 | 2% | 200-250 | 60-65% | 20-25% | High |
-| **Phase 5** | Month 4-9 | 5 | 2% | 140-200 | 75-80% | 25-30% | Moderate |
+| **Current** | Complete | 1 | 0.25% | 20 (est) | 70-73% | 0.5-1% | Low |
+| **Phase 1** | Week 1-3 | 5 | 0.25% | 60-80 | 68-72% | 2-4% | Low |
+| **Phase 2** | Week 3-5 | 5 | 2% | 60-80 | 68-72% | 8-12% | Moderate |
+| **Phase 3** | Week 6-10 | 5 | 2% | 100-120 | 66-70% | 12-16% | Mod-High |
+| **Phase 4** | Month 3-5 | 5 | 2% | 150-200 | 60-65% | 16-20% | High |
+| **Phase 5** | Month 6-12 | 5 | 2% | 120-160 | 70-75% | 18-22% | Moderate |
 
-### Capital Scaling
+### Capital Scaling (Realistic Projections)
 
-**With $2,000 starting capital**:
+**With $2,000 starting capital** (NOT RECOMMENDED - commissions eat profits):
 - Current: $10-20/year
-- After Phase 1: $50-60/year (2.5-3%)
-- After Phase 2: $200-240/year (10-12%)
-- After Phase 3: $300-400/year (15-20%)
-- After Phase 4+5: $500-600/year (25-30%)
+- After Phase 1: $40-80/year (2-4%) - commission drag significant
+- Phase 2+: NOT VIABLE ($40/trade too small for bracket orders)
 
-**With $10,000 starting capital** (recommended):
-- After Phase 2: $1,000-1,200/year
-- After Phase 3: $1,500-2,000/year
-- After Phase 4+5: $2,500-3,000/year
+**With $5,000 starting capital** (MINIMUM for growth strategy):
+- Current: $25-50/year
+- After Phase 1: $100-200/year (2-4%)
+- After Phase 2: $400-600/year (8-12%)
+- After Phase 3: $600-800/year (12-16%)
+- After Phase 4+5: $900-1,100/year (18-22%)
+
+**With $10,000 starting capital** (RECOMMENDED):
+- After Phase 1: $200-400/year
+- After Phase 2: $800-1,200/year (8-12%)
+- After Phase 3: $1,200-1,600/year (12-16%)
+- After Phase 4+5: $1,800-2,200/year (18-22%)
 
 **With $50,000 starting capital** (serious trading):
-- After Phase 2: $5,000-6,000/year
-- After Phase 3: $7,500-10,000/year
-- After Phase 4+5: $12,500-15,000/year
+- After Phase 2: $4,000-6,000/year
+- After Phase 3: $6,000-8,000/year
+- After Phase 4+5: $9,000-11,000/year
+
+**Reality Check**: These assume:
+- All phases validate successfully (50-60% chance based on backtest difficulty)
+- No major market regime changes
+- Strict discipline on risk management
+- Correlation stays manageable
 
 ### Risk Management Rules
 
@@ -605,23 +655,32 @@ if ml_enabled and ml_expectancy(features) < 5.0:
 
 ### Long-Term Target (12 Months)
 
-**Conservative Case** (Phases 1-2 only):
-- Annual return: 10-12%
-- Max drawdown: 5-6%
-- Win rate: 70-73%
-- **With $10K**: $1,000-1,200/year
+**Conservative Case** (Phases 1-2 only) - 70% probability:
+- Annual return: 8-12%
+- Max drawdown: 5-8%
+- Win rate: 68-72%
+- **With $10K**: $800-1,200/year
+- **Risk**: Low-Moderate (proven strategy, just scaled up)
 
-**Moderate Case** (Phases 1-3):
-- Annual return: 15-20%
-- Max drawdown: 8-10%
-- Win rate: 65-68%
-- **With $10K**: $1,500-2,000/year
+**Moderate Case** (Phases 1-3) - 40% probability:
+- Annual return: 12-16%
+- Max drawdown: 8-12%
+- Win rate: 66-70%
+- **With $10K**: $1,200-1,600/year
+- **Risk**: Moderate-High (filter loosening is unproven, could backfire)
 
-**Aggressive Case** (Phases 1-5, all successful):
-- Annual return: 25-30%
-- Max drawdown: 12-15%
-- Win rate: 75-80% (with ML)
-- **With $10K**: $2,500-3,000/year
+**Aggressive Case** (Phases 1-5, all successful) - 20% probability:
+- Annual return: 18-22%
+- Max drawdown: 12-18%
+- Win rate: 70-75% (with ML)
+- **With $10K**: $1,800-2,200/year
+- **Risk**: High (momentum + ML both unproven, 6+ month development)
+
+**Most Likely Outcome** (pragmatic estimate):
+- Phases 1-2 succeed: 8-12% annual return
+- Phase 3 fails validation: Stick with Phase 2
+- Phases 4-5 never attempted: Too time-intensive
+- **Realistic 12-month result**: $800-1,200/year on $10K (8-12%)
 
 ### Failure Modes & Fallback
 
