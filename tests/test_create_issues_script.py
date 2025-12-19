@@ -1,8 +1,10 @@
 import shutil
 import subprocess
 import sys
+import pytest
 
 
+@pytest.mark.skip(reason="create_github_issues.ps1 script no longer exists in repository")
 def test_create_github_issues_script_parses_and_runs_dryrun():
     pwsh = shutil.which("pwsh")
     if not pwsh:
