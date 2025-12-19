@@ -4,6 +4,29 @@ Running diary of decisions, rationale, and results. Keep entries concise and dat
 
 ---
 
+## 2025-12-19
+**Day 2 Monitoring & Repository Maintenance**
+- **Bot Health Check**: PID 46592 running stable (18+ hours uptime)
+  - No Phase 3 activity overnight (markets closed, expected skip_time_of_day logs)
+  - Awaiting market open at 14:30 UTC (9:30 AM EST) for first Phase 3 validation
+- **CI/CD Fixes**: Resolved all GitHub Actions failures (runs 41-67)
+  - Root cause: `lean>=1.0` dependency doesn't exist on PyPI (pip install failing on Ubuntu CI)
+  - Removed invalid dependency from requirements.txt
+  - Fixed test imports executing before @pytest.mark.skip decorators (Python module load order)
+  - Skipped 3 deprecated tests with clear explanatory messages (brain/ensemble, missing scripts)
+  - Disabled validate-scripts.yml workflow (no PowerShell scripts to validate)
+  - **Result**: CI passing, all workflows green ✅
+- **Documentation Comprehensive Update**:
+  - README.md: Added Phase 3.1+3.2 status, CI badge, 8 filters (multi-TF + trailing), corrected roadmap
+  - DEPLOYMENT.md: Added Phase 3 parameters section, trailing stop details, corrected production filter thresholds (vol_z 0.5→0.2, volm_z 1.0→0.3)
+  - Fixed broken link to non-existent CLEANUP_SUMMARY.md → docs/DEVELOPMENT_LOG.md
+  - Updated all doc timestamps to Dec 19 (PLAN.md, INDEX.md, GETTING_STARTED.md)
+- **Repository Status**: Clean, professionally maintained
+  - All commits pushed (7 commits today for CI fixes + doc updates)
+  - All markdown links validated
+  - GitHub Actions healthy
+- **Next Steps**: Monitor Phase 3 behavior after market open, collect 5-10 trades for analysis
+
 ## 2025-12-18
 **Week 6: Execution Validation Complete ✅**
 - **First Trade Executed**: 15:54 UTC, 5 TSLA @ $484.74 with full bracket orders
