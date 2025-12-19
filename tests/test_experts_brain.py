@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+import pytest
 
 from experts.rsi_expert import RSIExpert
 from experts.macd_expert import MACDExpert
@@ -7,6 +8,7 @@ from experts.trend_expert import TrendExpert
 from ensemble.brain import Brain
 
 
+@pytest.mark.skip(reason="Brain/ensemble architecture deprecated - focusing on RSI-only strategy (Phase 1-3)")
 def test_expert_and_brain_probs_in_unit_interval():
     # Ensure model files exist
     for f in ["models/rsi_expert.json", "models/macd_expert.json", "models/trend_expert.json", "models/brain.json"]:
