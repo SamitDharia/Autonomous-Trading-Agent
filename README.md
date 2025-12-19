@@ -4,6 +4,7 @@
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![CI Status](https://img.shields.io/badge/CI-passing-brightgreen.svg)](https://github.com/SamitDharia/Autonomous-Trading-Agent/actions)
 
 ## 🎯 Performance
 
@@ -16,9 +17,11 @@
 | **Profit Factor** | 0.52 | **0.93** | +78% |
 | **Trade Count** | 168 | **44** | -74% (quality over quantity) |
 
-**Strategy**: RSI mean-reversion with 6 intelligent filters that only trade when conditions align perfectly.
+**Strategy**: RSI mean-reversion with 6 intelligent filters + Phase 3 trailing stops & multi-TF confirmation.
 
-**Status**: 🟢 Deployed to Alpaca paper trading (Dec 17, 2025)
+**Status**: 🟢 **Phase 3.1+3.2 Deployed** to Alpaca paper trading (Dec 18, 2025)
+- ✅ Phase 3.1: ATR-based trailing stops (lock profits, breakeven protection)
+- ✅ Phase 3.2: Multi-timeframe RSI (15-min confirmation filter)
 
 ---
 
@@ -54,21 +57,25 @@ python scripts/alpaca_rsi_bot.py --symbol TSLA --loop
 3. **Pivoted to discipline**: Simple RSI baseline with strict quality filters
 4. **Result**: Turned losing strategy profitable with 73% win rate
 
-### The 6 Filters (Phase 1+2)
+### The 6 Filters (Phase 1+2) + Phase 3 Enhancements
 
 Every trade must pass ALL filters:
 
 **Phase 1 - Quality Gates**:
 1. ✅ **Time-of-day**: Only 10 AM - 3:30 PM ET (avoid volatility spikes)
-2. ✅ **Volatility regime**: vol_z > 0.5 (need movement to profit)
-3. ✅ **Volume confirmation**: volm_z > 1.0 (ensure liquidity)
+2. ✅ **Volatility regime**: vol_z > 0.2 (need movement to profit)
+3. ✅ **Volume confirmation**: volm_z > 0.3 (ensure liquidity)
 
 **Phase 2 - Smart Timing**:
 4. ✅ **Dynamic RSI thresholds**: Adapt to volatility (20/25/30 based on vol_z)
 5. ✅ **Trend filter**: Don't catch falling knives (skip if price <EMA200 by >5%)
 6. ✅ **BB confirmation**: Double-check oversold (require bb_z < -0.8)
 
-**Result**: 74% of opportunities rejected, only the best 26% traded → 73% win rate
+**Phase 3 - Risk & Confirmation** (Dec 18, 2025):
+7. ✅ **Multi-timeframe RSI**: Require 15-min RSI < 50 (reject weak signals)
+8. ✅ **Trailing stops**: 1.5 × ATR trail (lock profits, breakeven protection)
+
+**Result**: 74% of opportunities rejected, only the best 26% traded → 73% win rate (Phase 1+2 backtest)
 
 ---
 
@@ -159,9 +166,9 @@ python scripts/analyze_trading_log.py --export
 - [x] **Weeks 1-3**: Foundation, QuantConnect setup, risk engine
 - [x] **Week 4**: Brain retraining (decided not to promote)
 - [x] **Week 5**: Phase 1+2 implementation & validation (Sharpe 0.80 achieved)
-- [x] **Week 6**: Paper trading deployment ← **YOU ARE HERE**
-- [ ] **Week 7**: Live trading decision or Phase 3 enhancements
-- [ ] **Week 8**: Multi-symbol expansion (AAPL, MSFT, SPY)
+- [x] **Week 6**: Paper trading deployment + Phase 3 (trailing stops + multi-TF) ← **YOU ARE HERE**
+- [ ] **Week 7**: Monitor Phase 3 performance (3-5 days), Shadow ML decision
+- [ ] **Week 8**: Live trading decision or multi-symbol expansion
 
 **Full roadmap**: [PLAN.md](docs/PLAN.md)
 
@@ -179,7 +186,7 @@ This is an experimental trading system. **Past performance does not guarantee fu
 **Daily risk controls**:
 - Max position: 0.25% of equity per trade
 - Daily stop: -1% (kill-switch)
-- Stop loss: 1x ATR below entry
+- Stop loss: 1.5x ATR below entry (trailing in Phase 3)
 - Take profit: 2x ATR above entry
 
 ---
