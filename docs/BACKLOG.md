@@ -380,13 +380,279 @@ Use `scripts/create_github_issues.ps1` to batch-create from this file.
 
 ---
 
+## 🚀 Maximum Returns Path (Aggressive Growth Strategy)
+
+**Target**: 15-25% annual returns  
+**Risk Tolerance**: Moderate-High  
+**Timeline**: 3-6 months implementation  
+**Capital Requirement**: $10K+ recommended (works with $2K but lower absolute $)
+
+### Strategy Overview
+
+Current baseline (Phase 3): ~0.5-1% annual return with ultra-conservative approach (single symbol, 0.25% sizing, strict filters, 9 trades/year). This section outlines the path to 15-25% returns by aggressively scaling up trade frequency, diversification, and position sizing.
+
+### Implementation Roadmap
+
+#### **Phase 1: Multi-Symbol Expansion** (Week 1-2)
+**Goal**: 5x trade opportunities through diversification
+
+**Actions**:
+- Add 4 more liquid symbols: AAPL, MSFT, NVDA, SPY
+- Same Phase 3 strategy (RSI mean-reversion + 8 filters)
+- Stagger entries to avoid correlation risk (max 2 positions simultaneously)
+
+**Code Changes**:
+```python
+# In alpaca_rsi_bot.py:
+SYMBOLS = ["TSLA", "AAPL", "MSFT", "NVDA", "SPY"]  # Was: symbol = "TSLA"
+MAX_CONCURRENT_POSITIONS = 2  # Risk control
+```
+
+**Expected Impact**:
+- Trade frequency: 9/year → 45/year (5x)
+- Annual return: 0.5% → 2.5-3%
+- Risk: Low (diversified, uncorrelated signals)
+
+**Backtest Required**: Validate each symbol individually on 2020-2024 data
+
+---
+
+#### **Phase 2: Aggressive Position Sizing** (Week 2-3)
+**Goal**: 4-8x returns per trade through larger positions
+
+**Actions**:
+- Increase from 0.25% → 2% per trade
+- Maintain strict risk controls (1.5 ATR stop-loss, daily -3% kill-switch)
+- With 5 symbols, max exposure = 10% (2% × 5 positions)
+
+**Code Changes**:
+```python
+position_size = 0.02  # 2% per trade (vs 0.25% current)
+daily_stop = -0.03    # -3% kill-switch (vs -1% current)
+```
+
+**Expected Impact**:
+- Annual return: 2.5% → 10-12% (with multi-symbol)
+- Max drawdown: 0% → 5-8% (acceptable for growth account)
+- Risk: Moderate (8x larger losses when wrong, but 1.5 ATR stops limit damage)
+
+**Stress Test**: Simulate 2020 COVID crash, 2022 Fed tightening on 2% sizing
+
+---
+
+#### **Phase 3: Loosen Filters for Higher Frequency** (Week 4-6)
+**Goal**: 3-4x more trades through relaxed entry criteria
+
+**Current Bottleneck**:
+- vol_z > 0.2, volm_z > 0.3 reject 90% of setups
+- Only 9 trades/year is too conservative for growth
+
+**Actions**:
+- Test multiple filter configurations in backtest:
+  - **Option A** (Conservative): vol_z > 0.1, volm_z > 0.15
+  - **Option B** (Moderate): vol_z > 0.05, volm_z > 0.1  
+  - **Option C** (Aggressive): vol_z > 0.0, volm_z > 0.05 (volume confirmation only)
+- Validate win rate doesn't drop below 65% (current: 73%)
+- Choose configuration with highest Sharpe ratio
+
+**Code Changes**:
+```python
+# Test in backtest, then deploy winner:
+VOL_THRESHOLD = 0.05   # vs 0.2 current (4x looser)
+VOLM_THRESHOLD = 0.1   # vs 0.3 current (3x looser)
+```
+
+**Expected Impact**:
+- Trade frequency: 45/year → 120-150/year (with 5 symbols)
+- Win rate: 73% → 65-68% (acceptable tradeoff)
+- Annual return: 10-12% → 15-20%
+- Risk: Moderate-High (more false signals, need tight execution)
+
+**Validation**: Paper trade 1 month, collect 20-30 trades, verify win rate ≥ 65%
+
+---
+
+#### **Phase 4: Add Momentum Strategy** (Week 8-12)
+**Goal**: Diversify signal types (mean-reversion + momentum)
+
+**Rationale**: RSI mean-reversion only captures one market pattern. Add breakout/trend-following for stronger directional moves.
+
+**New Entry Patterns**:
+1. **Bollinger Band Breakouts**: Price breaks above upper BB with volume surge
+2. **MACD Momentum**: MACD crosses above signal + histogram expanding
+3. **Gap-Fill Setups**: Stock gaps down >2%, first bounce on volume
+
+**Code Structure**:
+```python
+# Dual strategy approach:
+if rsi_mean_reversion_signal():
+    enter_long_rsi()  # Current Phase 3 logic
+elif momentum_breakout_signal():
+    enter_long_momentum()  # New logic
+```
+
+**Expected Impact**:
+- Trade frequency: 150/year → 200-250/year (combined strategies)
+- Annual return: 15-20% → 20-25%
+- Risk: High (momentum trades have lower win rate ~55-60%, need larger targets)
+
+**Development Time**: 4-6 weeks (strategy design + backtest + validation)
+
+---
+
+#### **Phase 5: ML Expectancy Model** (Month 4-9)
+**Goal**: Improve win rate through trade quality filtering
+
+**Actions**:
+1. Enable ML_SHADOW_ENABLED=true (start logging)
+2. Collect 500+ labeled trades (6 months at 150 trades/year)
+3. Train LightGBM model to predict trade expectancy (not just direction)
+4. Add ML confidence gate: Only take trades with ML expectancy > $5 per $100 risked
+5. A/B test: Baseline vs ML-filtered (compare Sharpe, win rate, profit factor)
+
+**Code Integration**:
+```python
+if ml_enabled and ml_expectancy(features) < 5.0:
+    return  # Skip low-expectancy setup
+# Proceed with entry
+```
+
+**Expected Impact**:
+- Win rate: 65-68% → 75-80% (filter out bottom 30% of trades)
+- Trade frequency: 200/year → 140/year (quality over quantity)
+- Annual return: 20-25% → 25-30%
+- Risk: Moderate (ML overfitting risk, need robust validation)
+
+**Success Criteria**: ML out-of-sample Sharpe > Baseline Sharpe + 0.3 (significant improvement)
+
+---
+
+### Expected Returns Summary
+
+| Phase | Implementation | Symbols | Position Size | Trades/Year | Win Rate | Annual Return | Risk Level |
+|-------|----------------|---------|---------------|-------------|----------|---------------|------------|
+| **Current** | Complete | 1 | 0.25% | 9 | 73% | 0.5-1% | Low |
+| **Phase 1** | Week 1-2 | 5 | 0.25% | 45 | 73% | 2.5-3% | Low |
+| **Phase 2** | Week 2-3 | 5 | 2% | 45 | 73% | 10-12% | Moderate |
+| **Phase 3** | Week 4-6 | 5 | 2% | 120-150 | 65-68% | 15-20% | Mod-High |
+| **Phase 4** | Week 8-12 | 5 | 2% | 200-250 | 60-65% | 20-25% | High |
+| **Phase 5** | Month 4-9 | 5 | 2% | 140-200 | 75-80% | 25-30% | Moderate |
+
+### Capital Scaling
+
+**With $2,000 starting capital**:
+- Current: $10-20/year
+- After Phase 1: $50-60/year (2.5-3%)
+- After Phase 2: $200-240/year (10-12%)
+- After Phase 3: $300-400/year (15-20%)
+- After Phase 4+5: $500-600/year (25-30%)
+
+**With $10,000 starting capital** (recommended):
+- After Phase 2: $1,000-1,200/year
+- After Phase 3: $1,500-2,000/year
+- After Phase 4+5: $2,500-3,000/year
+
+**With $50,000 starting capital** (serious trading):
+- After Phase 2: $5,000-6,000/year
+- After Phase 3: $7,500-10,000/year
+- After Phase 4+5: $12,500-15,000/year
+
+### Risk Management Rules
+
+**Position Sizing**:
+- Max 2% per trade (never exceed)
+- Max 10% total exposure (5 symbols × 2%)
+- Daily kill-switch: -3% equity
+
+**Stop-Loss Protection**:
+- All trades use 1.5 ATR trailing stops (Phase 3.1)
+- No naked positions (bracket orders mandatory)
+- Emergency manual override if bot fails
+
+**Drawdown Limits**:
+- Daily: -3% → shut down for day
+- Weekly: -6% → reduce position sizing to 1%
+- Monthly: -10% → revert to Phase 1 (multi-symbol only, 0.25% sizing)
+
+**Validation Gates**:
+- Phase 1→2: Verify 20+ trades, Sharpe ≥ 0.8
+- Phase 2→3: Verify 30+ trades, win rate ≥ 65%
+- Phase 3→4: Verify 50+ trades, max drawdown < 8%
+- Phase 4→5: Verify 100+ trades, ML out-of-sample Sharpe > baseline + 0.3
+
+### Quick Start (Next 2 Weeks)
+
+**To maximize returns immediately**:
+
+1. **Day 1-2**: Multi-symbol implementation
+   - Backtest AAPL, MSFT, NVDA, SPY on 2020-2024 (verify Sharpe > 0.5 each)
+   - Update alpaca_rsi_bot.py with symbol loop
+   - Deploy to paper trading
+
+2. **Day 3-7**: Collect 5-10 multi-symbol trades
+   - Verify bracket orders work correctly across all symbols
+   - Check correlation (max 2 concurrent positions)
+   
+3. **Day 8**: Go/No-Go for Phase 2
+   - If multi-symbol Sharpe ≥ 0.8 → increase to 2% sizing
+   - If Sharpe < 0.6 → investigate, keep 0.25% sizing
+
+4. **Day 9-14**: Test 2% sizing in paper
+   - Monitor drawdown closely (should be < 3%)
+   - Collect 10-15 trades
+
+5. **Day 15+**: If stable, begin Phase 3 filter testing
+
+### Long-Term Target (12 Months)
+
+**Conservative Case** (Phases 1-2 only):
+- Annual return: 10-12%
+- Max drawdown: 5-6%
+- Win rate: 70-73%
+- **With $10K**: $1,000-1,200/year
+
+**Moderate Case** (Phases 1-3):
+- Annual return: 15-20%
+- Max drawdown: 8-10%
+- Win rate: 65-68%
+- **With $10K**: $1,500-2,000/year
+
+**Aggressive Case** (Phases 1-5, all successful):
+- Annual return: 25-30%
+- Max drawdown: 12-15%
+- Win rate: 75-80% (with ML)
+- **With $10K**: $2,500-3,000/year
+
+### Failure Modes & Fallback
+
+**If Phase 2 fails** (2% sizing → excessive drawdown):
+- Fallback: 1% sizing (50% reduction)
+- Expected return: 5-6% (still 5x better than current)
+
+**If Phase 3 fails** (looser filters → win rate collapse):
+- Fallback: Keep strict filters (vol_z > 0.2, volm_z > 0.3)
+- Expected return: 10-12% (Phase 1+2 only)
+
+**If Phase 4 fails** (momentum strategy loses money):
+- Abandon momentum, stick with mean-reversion only
+- Expected return: 15-20% (Phase 1-3)
+
+**If Phase 5 fails** (ML no improvement):
+- Already documented in BACKLOG (abandon ML research)
+- Expected return: 20-25% (Phase 1-4)
+
+**Nuclear Option**: If cumulative drawdown > 20%, revert to Phase 1 baseline (single symbol, 0.25% sizing, strict filters). Rebuild confidence with 50+ profitable trades before retrying.
+
+---
+
 ## See Also
 - **[PLAN.md](PLAN.md)** — 8-week roadmap (high-level milestones)
 - **[PROJECT_BRIEF.md](PROJECT_BRIEF.md)** — System goals and current status
 - **[DEVELOPMENT_LOG.md](DEVELOPMENT_LOG.md)** — Recent decisions
 - **[INDEX.md](INDEX.md)** — Documentation navigation
+- **[RSI_ENHANCEMENTS.md](RSI_ENHANCEMENTS.md)** — Strategy improvement details
 
 ---
 
-**Last updated**: 2025-12-17  
+**Last updated**: 2025-12-19  
 **Next review**: Weekly (Fridays)
