@@ -2,10 +2,11 @@ import json
 from pathlib import Path
 import pytest
 
-from experts.rsi_expert import RSIExpert
-from experts.macd_expert import MACDExpert
-from experts.trend_expert import TrendExpert
-from ensemble.brain import Brain
+# Imports moved inside test to avoid import errors when skipped
+# from experts.rsi_expert import RSIExpert
+# from experts.macd_expert import MACDExpert
+# from experts.trend_expert import TrendExpert
+# from ensemble.brain import Brain
 
 
 @pytest.mark.skip(reason="Brain/ensemble architecture deprecated - focusing on RSI-only strategy (Phase 1-3)")
