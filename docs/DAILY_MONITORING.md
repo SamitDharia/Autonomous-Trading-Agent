@@ -13,6 +13,15 @@ Quick reference for checking your bot health. Run these daily during December ho
 
 ## Manual Queries
 
+### 0. Sync Latest Logs to Local (First Step)
+```bash
+scp root@138.68.150.144:/root/Autonomous-Trading-Agent/alpaca_rsi_log.csv alpaca_rsi_log.csv
+```
+**Why**: Your local log file gets stale. Always sync first before analyzing locally.  
+**When**: Before running analyze_recent_trades.py or checking local logs
+
+---
+
 ### 1. Bot Process Status
 ```bash
 ssh root@138.68.150.144 "cd ~/Autonomous-Trading-Agent && ps aux | grep alpaca_rsi_bot | grep -v grep"
@@ -129,15 +138,17 @@ ssh root@138.68.150.144 "cd ~/Autonomous-Trading-Agent && tail -1 alpaca_rsi_log
 ## Analysis Commands (After 5+ Trades)
 
 ```bash
-# Download logs for analysis:
-scp root@138.68.150.144:~/Autonomous-Trading-Agent/alpaca_rsi_log.csv .
+# 1. Download latest logs (ALWAYS DO THIS FIRST):
+scp root@138.68.150.144:/root/Autonomous-Trading-Agent/alpaca_rsi_log.csv alpaca_rsi_log.csv
 
-# Run local analysis:
+# 2. Run local analysis:
 python scripts/analyze_recent_trades.py --days 30
 
-# Check Phase 3 performance:
+# 3. Check Phase 3 activity counts:
 grep 'trail_update\|skip_multi_tf' alpaca_rsi_log.csv | wc -l
 ```
+
+**Important**: The log file on the droplet is continuously updated, but your local copy is stale. Always sync logs before analysis.
 
 ---
 
@@ -150,16 +161,22 @@ grep 'trail_update\|skip_multi_tf' alpaca_rsi_log.csv | wc -l
 
 **Weekly (5 minutes)**:
 ```bash
-# Check filter breakdown + download logs
+# Sync logs first
+scp root@138.68.150.144:/root/Autonomous-Trading-Agent/alpaca_rsi_log.csv alpaca_rsi_log.csv
+
+# Check filter breakdown locally or remotely
 ssh root@138.68.150.144 "cd ~/Autonomous-Trading-Agent && tail -500 alpaca_rsi_log.csv | cut -d',' -f3 | sort | uniq -c"
-scp root@138.68.150.144:~/Autonomous-Trading-Agent/alpaca_rsi_log.csv .
 ```
 
 **After First Trade (analysis)**:
 ```bash
+# Sync logs first
+scp root@138.68.150.144:/root/Autonomous-Trading-Agent/alpaca_rsi_log.csv alpaca_rsi_log.csv
+
+# Analyze locally
 python scripts/analyze_recent_trades.py --days 7
 ```
 
 ---
 
-**Last Updated**: 2025-12-19
+**Last Updated**: 2025-12-22
