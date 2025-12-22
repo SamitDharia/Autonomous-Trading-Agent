@@ -124,15 +124,17 @@ On QuantConnect you can keep helpers inside `algo.py` to start. Upload the model
 **Target**: 12-22% annual returns through aggressive scaling (see [BACKLOG.md](BACKLOG.md#-maximum-returns-path-aggressive-growth-strategy))
 
 **Phased approach** (2026-2027):
-- **Phase 1** (Feb-Mar 2026): Multi-symbol expansion (5 stocks) → 2-4% annual return
-- **Phase 2** (Mar-Apr 2026): 2% position sizing → 8-12% annual return
-- **Phase 3** (May-Jun 2026): Loosen filters (high risk) → 12-16% annual return
-- **Phase 4** (Aug-Nov 2026): Add momentum strategy → 16-20% annual return
-- **Phase 5** (2027): ML expectancy filter → 18-22% annual return
+- **Growth Phase 1** (Feb-Mar 2026): Multi-symbol expansion (5 stocks) → 2-4% annual return
+- **Growth Phase 2** (Mar-Apr 2026): 2% position sizing → 8-12% annual return
+- **Growth Phase 3** (May-Jun 2026): Loosen filters (high risk) → 12-16% annual return
+- **Growth Phase 4** (Aug-Nov 2026): Add momentum strategy → 16-20% annual return
+- **Growth Phase 5** (2027): ML expectancy filter → 18-22% annual return
 
 **Capital requirements**: $5K minimum (realistic), $10K+ recommended
 
-**Probability of success**: Conservative case (Phases 1-2 only) = 70% confidence for 8-12% returns
+**Probability of success**: Conservative case (Growth Phases 1-2 only) = 70% confidence for 8-12% returns
+
+**Note**: This is separate from core RSI Enhancement Phases (1-4). Maximum Returns Path begins AFTER RSI Phase 3 validation (Jan 2026+).
 
 Full details including risk management, validation gates, correlation risk, and capital scaling projections are documented in BACKLOG.md
 
