@@ -50,27 +50,55 @@ Market Data (5m bars)
 
 ### Legacy Architecture (Archived)
 
-The original **stacked ensemble** (3 experts → Brain meta-model) achieved AUC 0.50-0.52 and was **not promoted**. Code preserved in `ensemble/` and `experts/` directories for reference. See [TRAINING.md](TRAINING.md) and [DEVELOPMENT_LOG.md](DEVELOPMENT_LOG.md) for details.
+The original **stacked ensemble** (3 experts → Brain meta-model) achieved AUC 0.50-0.52 and was **not promoted**. Code preserved in `ensemble/` and `experts/` directories for reference. See [archive/TRAINING.md](archive/TRAINING.md) and [DEVELOPMENT_LOG.md](DEVELOPMENT_LOG.md) for details.
 
 ---
 
 ## Module Structure
 
-### Core Algorithm (`algo.py`)
+### Production System (`scripts/alpaca_rsi_bot.py`)
+**Platform**: Alpaca Markets API  
+**Status**: Deployed Dec 18, 2025 on DigitalOcean droplet (PID 46592)
+
+**Architecture**: Inline RSI strategy (no ML models):
+- **Data**: Alpaca WebSocket (1-min bars) + pandas_ta for indicators
+- **Strategy**: RSI mean-reversion with 8 filters (Phase 1+2+3 enhancements)
+- **Filters**:
+  - Time-of-day: 10:00-15:30 ET
+  - Volatility: vol_z > 0.2 (20% above baseline)
+  - Volume: volm_z > 0.3 (30% above baseline)
+  - Trend: ema200_rel > -5% (not in downtrend)
+  - Bollinger: bb_z < -0.8 (extreme oversold)
+  - RSI thresholds: Dynamic 20/25/30 based on regime
+  - Multi-timeframe: 5-min RSI < 25 AND 15-min RSI < 50
+  - Trailing stop: 1.5 ATR, only trails when profitable
+- **Position Sizing**: Fixed 0.25% equity cap per trade
+- **Risk Controls**: 1% daily kill-switch, bracket orders mandatory
+- **Logging**: CSV format (alpaca_rsi_log.csv), rsync to local for analysis
+- **ML Shadow**: ml/shadow.py infrastructure ready (disabled by default)
+
+**Key Difference from algo.py**: No brain/ensemble models, pure rule-based RSI strategy.
+
+---
+
+### Core Algorithm (`algo.py`) — BACKTESTING ONLY
+**Platform**: QuantConnect LEAN Engine  
+**Purpose**: Research and backtesting (NOT production)
+
 Main entry point for QuantConnect LEAN. Orchestrates the entire trading pipeline:
 
-- **Initialization**: Load expert models + brain from Object Store (QC) or local JSON files
+- **Initialization**: Load expert models + brain from Object Store (QC) or local JSON files (archived)
 - **Data Handling**: Consolidate 1-minute bars → 5-minute bars
 - **Indicator Management**: RSI, MACD, EMA(20/50/200), ATR, Bollinger Bands
-- **Signal Generation**: Calls feature builder → experts → brain → position sizing
+- **Signal Generation (Legacy)**: Calls feature builder → experts → brain → position sizing (archived approach)
 - **Risk Enforcement**: Daily P&L stop, indicator readiness checks, min hold time
 - **Order Execution**: Bracket orders (stop-loss + take-profit) with ATR-based levels
 
-**Dependencies**:
+**Dependencies** (for backtesting only):
 - `features.feature_builder.build_features()`
 - `risk.guards.{daily_pnl_stop_hit, indicators_ready}`
-- `experts.{rsi,macd,trend}_expert.{load, predict_proba}`
-- `ensemble.brain.{load, predict_proba}`
+- `experts.{rsi,macd,trend}_expert.{load, predict_proba}` (archived)
+- `ensemble.brain.{load, predict_proba}` (archived)
 - `risk.position_sizing.size_from_prob()`
 
 ---
@@ -102,7 +130,34 @@ def build_features(context) -> Dict[str, float]:
 
 ---
 
-### Expert Models (`experts/`)
+### Production System (`scripts/alpaca_rsi_bot.py`)
+**Platform**: Alpaca Markets API  
+**Status**: Deployed Dec 18, 2025 on DigitalOcean droplet (PID 46592)
+
+**Architecture**: Inline RSI strategy (no ML models):
+- **Data**: Alpaca WebSocket (1-min bars) + pandas_ta for indicators
+- **Strategy**: RSI mean-reversion with 8 filters (Phase 1+2+3 enhancements)
+- **Filters**:
+  - Time-of-day: 10:00-15:30 ET
+  - Volatility: vol_z > 0.2 (20% above baseline)
+  - Volume: volm_z > 0.3 (30% above baseline)
+  - Trend: ema200_rel > -5% (not in downtrend)
+  - Bollinger: bb_z < -0.8 (extreme oversold)
+  - RSI thresholds: Dynamic 20/25/30 based on regime
+  - Multi-timeframe: 5-min RSI < 25 AND 15-min RSI < 50
+  - Trailing stop: 1.5 ATR, only trails when profitable
+- **Position Sizing**: Fixed 0.25% equity cap per trade
+- **Risk Controls**: 1% daily kill-switch, bracket orders mandatory
+- **Logging**: CSV format (alpaca_rsi_log.csv), rsync to local for analysis
+- **ML Shadow**: ml/shadow.py infrastructure ready (disabled by default)
+
+**Key Difference from algo.py**: No brain/ensemble models, pure rule-based RSI strategy.
+
+---
+
+### Expert Models (`experts/`) — ARCHIVED
+
+⚠️ **Status**: Not used in production (AUC 0.50-0.52, no edge over RSI baseline). Preserved for reference and future research.
 
 Three independent logistic regression models, each specialized on different technical patterns:
 
@@ -136,7 +191,9 @@ class Expert:
 
 ---
 
-### Ensemble Brain (`ensemble/brain.py`)
+### Ensemble Brain (`ensemble/brain.py`) — ARCHIVED
+
+⚠️ **Status**: Not used in production (AUC 0.50-0.52, no edge over RSI baseline). Preserved for reference and future research.
 
 **Purpose**: Meta-model that combines expert predictions with regime context.
 
@@ -351,63 +408,73 @@ See [CLOUD_DEPLOYMENT.md](CLOUD_DEPLOYMENT.md) for full setup guide.
 - Bollinger Band confirmation (bb_z < -0.8, only extreme oversold)
 - **Result**: Sharpe 0.41 → 0.80 (+97% improvement)
 
-### Phase 3: Advanced Techniques 📐 (Designed, Ready for Implementation)
+### Phase 3: Advanced Techniques ✅ (Deployed Dec 18, 2025)
 **Phase 3.1 - Trailing ATR Stop**:
 - ATR-based trailing stop via Alpaca order.replace() API
 - Only trail when profitable, never move stop down
-- Trail distance: 1.5 ATR recommended
-- **Target**: +10% Sharpe improvement (0.80 → 0.88)
+- Trail distance: 1.5 ATR
+- **Status**: Deployed to production (scripts/alpaca_rsi_bot.py)
+- **Validation**: Awaiting Jan 2026 volatility for first trades
 - **Design**: [PHASE3_TRAILING_STOP_DESIGN.md](PHASE3_TRAILING_STOP_DESIGN.md)
 
 **Phase 3.2 - Multi-Timeframe RSI**:
 - 15-min RSI confirmation (5m <25, 15m <50)
 - Filters whipsaws when broader trend still bullish
 - Pandas resample for bar consolidation
-- **Target**: +10-15% Sharpe, ~25% trade reduction
+- **Status**: Deployed to production (scripts/alpaca_rsi_bot.py)
+- **Validation**: Awaiting Jan 2026 volatility for first trades
 - **Design**: [PHASE3_MULTI_TF_RSI_DESIGN.md](PHASE3_MULTI_TF_RSI_DESIGN.md)
 
-**Combined Goal**: Sharpe 0.80 → **1.0+** (required for live deployment)
+**Combined Goal**: Sharpe 0.80 → **1.0+** (required for live deployment)  
+**Validation Timeline**: Jan 6-31, 2026 (high-activity period for trades)
 
 ### Phase 4: ML Shadow Mode ✅ (Implemented, Disabled by Default)
-- Zero-risk data collection infrastructure (ml/shadow.py)
-- Logs market state + bot decision for future ML research
-- Try/except wrapper prevents execution errors
-- Disabled by default, enable via ML_SHADOW_ENABLED=true
-- **Goal**: Collect 500+ trades over 6 months, analyze if ML improves expectancy
-- **Docs**: [ml/README.md](../ml/README.md)
+- **Purpose**: Passive data collection for future ML expectancy filter (Growth Phase 5)
+- **Infrastructure**: ml/shadow.py with zero-risk design (ML observes, never influences)
+- **Data Format**: JSONL (market state + bot decision + outcome)
+- **Status**: Code deployed, disabled by default (ML_SHADOW_ENABLED=false)
+- **Timeline**: 
+  - Enable after Phase 3 validation (Jan 2026+)
+  - Collect 500+ labeled trades over 6 months (Jan-Jun 2026)
+  - Analyze if ML can predict which setups to skip (expectancy filter)
+- **Key Principle**: Rule-based strategy primary, ML optional future filter
+- **Fallback**: Try/except wrapper prevents execution errors
+- **Docs**: [ml/README.md](../ml/README.md), [PROJECT_BRIEF.md](PROJECT_BRIEF.md) (Phase 4 section)
 
 ---
 
-## Current Status (Dec 2025)
+## Current Status (Dec 22, 2025)
 
-### ✅ Implemented
-- Feature builder with 15+ indicators
-- 3 expert models (RSI, MACD, Trend) with JSON loaders (archived, not in use)
-- Brain ensemble with regime inputs (archived, AUC 0.50-0.52)
-- RSI Phase 1+2 enhancements (Sharpe 0.80, Win Rate 72.7%)
-- Daily P&L stop + indicator readiness guards
-- ATR-based position sizing with caps
-- Bracket orders (stop-loss + take-profit)
-- Local backtest harness
-- Alpaca paper trading script (alpaca_rsi_bot.py)
-- Cloud deployment on DigitalOcean (running 24/7)
-- Phase 3 design documents (trailing stops, multi-TF RSI)
-- Phase 4 ML shadow logging infrastructure
-- Analysis tools (analyze_recent_trades.py)
+### ✅ Deployed to Production
+- **Bot Status**: Running 24/7 on DigitalOcean droplet (PID 46592, Frankfurt, $6/month)
+- **Strategy**: RSI mean-reversion with 8 filters (Phase 1+2+3 deployed Dec 18)
+- **Performance (Backtest 2020-2024)**: Sharpe 0.80, Win Rate 72.7%, 44 trades
+- **Features**:
+  - Phase 1: Time/vol/volume filters
+  - Phase 2: Dynamic RSI thresholds, trend, Bollinger Band
+  - Phase 3.1: 1.5 ATR trailing stops (only trails when profitable)
+  - Phase 3.2: Multi-timeframe RSI (5-min + 15-min confirmation)
+- **Risk Controls**: 1% daily kill-switch, 0.25% position cap, bracket orders mandatory
+- **Logging**: CSV format (alpaca_rsi_log.csv), synced to local for analysis
+- **Monitoring**: daily_health_check.ps1, analyze_recent_trades.py
 
-### 🔄 In Progress (Week 6)
-- First trade execution validation (waiting for Dec 18, 10 AM ET)
-- Bracket order validation (stop-loss, take-profit)
-- Temporary filter loosening for faster validation
+### 🔄 Validation Mode (Dec 22 - Jan 31)
+- **Current Behavior**: Bot running, skip_volatility/skip_volume logs (no trades)
+- **Reason**: Holiday period low volatility (Dec 18-Jan 3)
+- **Expected**: First trades early Jan (TSLA delivery numbers catalyst)
+- **Validation Window**: Jan 6-31, 2026 (high-activity period, expect 3-7 trades)
+- **Success Criteria**: Phase 3 Sharpe ≥ 0.7, trailing stops work correctly, multi-TF RSI reduces whipsaws
 
-### ⏳ Planned (Weeks 7-8 and Beyond)
-- Phase 3.1 implementation (trailing stops)
-- Phase 3.2 implementation (multi-TF RSI)
-- 60-day paper trading certification (Sharpe ≥1.0, max drawdown <2%)
-- Multi-symbol support (AAPL, MSFT, SPY)
-- Automated model retraining pipeline
-- Performance analytics dashboard
-- Tiny live deployment ($1000 capital)
+### 📦 Archived (Not in Production)
+- Brain ensemble (AUC 0.50-0.52, no edge over RSI baseline)
+- Expert models (RSI/MACD/Trend, preserved for reference)
+- algo.py brain integration (QuantConnect backtests only)
+
+### ⏳ Planned (2026+)
+- **Growth Phase 1** (Feb-Mar 2026): Multi-symbol expansion (5 stocks: TSLA, AAPL, NVDA, SPY, QQQ)
+- **Phase 4 ML Shadow** (Jan-Jun 2026): Enable ml/shadow.py, collect 500+ trades
+- **Growth Phase 5** (2027+): ML expectancy filter (predict which setups to skip)
+- **Live Deployment**: After 60-day paper validation (Sharpe ≥1.0, max drawdown <2%)
 
 ---
 
@@ -427,4 +494,4 @@ See [CLOUD_DEPLOYMENT.md](CLOUD_DEPLOYMENT.md) for full setup guide.
 
 ---
 
-**Last updated**: 2025-12-18
+**Last updated**: 2025-12-22
