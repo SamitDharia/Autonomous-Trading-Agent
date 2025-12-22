@@ -120,6 +120,22 @@ On QuantConnect you can keep helpers inside `algo.py` to start. Upload the model
 6) **60-day certification** (Q1 2026): Paper run with Sharpe ≥1.0, max drawdown <2% before live deployment
 7) **Brain future**: Enable shadow ML logging after Phase 3 validation (collect 500+ trades over 6 months)
 
+## Maximum Returns Path (Long-term Vision)
+**Target**: 12-22% annual returns through aggressive scaling (see [BACKLOG.md](BACKLOG.md#-maximum-returns-path-aggressive-growth-strategy))
+
+**Phased approach** (2026-2027):
+- **Phase 1** (Feb-Mar 2026): Multi-symbol expansion (5 stocks) → 2-4% annual return
+- **Phase 2** (Mar-Apr 2026): 2% position sizing → 8-12% annual return
+- **Phase 3** (May-Jun 2026): Loosen filters (high risk) → 12-16% annual return
+- **Phase 4** (Aug-Nov 2026): Add momentum strategy → 16-20% annual return
+- **Phase 5** (2027): ML expectancy filter → 18-22% annual return
+
+**Capital requirements**: $5K minimum (realistic), $10K+ recommended
+
+**Probability of success**: Conservative case (Phases 1-2 only) = 70% confidence for 8-12% returns
+
+Full details including risk management, validation gates, correlation risk, and capital scaling projections are documented in BACKLOG.md
+
 ---
 
 ## See Also
@@ -134,4 +150,4 @@ On QuantConnect you can keep helpers inside `algo.py` to start. Upload the model
 
 ---
 
-**Last updated**: 2025-12-19
+**Last updated**: 2025-12-22
