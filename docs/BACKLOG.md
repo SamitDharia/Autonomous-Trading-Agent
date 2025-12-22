@@ -74,6 +74,8 @@
 
 ---
 
+## Current Strategy: RSI Enhancement Phases
+
 ### Phase 3 Planning (Ready to Implement After Validation)
 **Priority**: 🔴 High  
 **Status**: Design Complete, Implementation Waiting  
@@ -119,8 +121,6 @@
 
 ---
 
-## 🟡 Medium Priority (Weeks 7-8)
-
 ### Phase 4 Shadow ML Logging (Infrastructure Ready)
 **Priority**: 🟡 Medium  
 **Status**: Implemented, Disabled by Default  
@@ -146,6 +146,8 @@
 
 ---
 
+## 🟡 Medium Priority (Weeks 7-8)
+
 ### Analysis & Monitoring Tools
 **Priority**: 🟡 Medium  
 **Status**: Partially Complete  
@@ -168,7 +170,9 @@
 ---
 
 ## 🟢 Low Priority (Future, Not Scheduled)
-**Priority**: 🟡 Medium (Week 6)  
+
+### Alert System
+**Priority**: 🟢 Low  
 **Status**: Not Started  
 **Owner**: TBD
 
@@ -382,23 +386,25 @@ Use `scripts/create_github_issues.ps1` to batch-create from this file.
 
 ## 🚀 Maximum Returns Path (Aggressive Growth Strategy)
 
+**Note**: This is a **separate growth roadmap** from the core RSI enhancement phases (Phase 1-4 above). Think of this as "Version 2.0" - implementing these would happen AFTER Phase 3 validation (Jan 2026+).
+
 **Target**: 12-22% annual returns (realistic with risk controls)  
 **Risk Tolerance**: Moderate-High  
 **Timeline**: 6-12 months implementation  
 **Capital Requirement**: $5K minimum (realistic), $10K+ recommended
 
 **Capital Reality Check**:
-- $2K account: Phase 1 only (0.5-1% sizing) - commissions eat profits
-- $5K account: Can handle Phase 2 (2% sizing = $100/trade)
-- $10K+ account: Full strategy (all phases, proper diversification)
+- $2K account: Growth Path Phase 1 only (0.5-1% sizing) - commissions eat profits
+- $5K account: Can handle Growth Path Phase 2 (2% sizing = $100/trade)
+- $10K+ account: Full strategy (all growth phases, proper diversification)
 
 ### Strategy Overview
 
-Current baseline (Phase 3): ~0.5-1% annual return with ultra-conservative approach (single symbol, 0.25% sizing). **Note**: Deployed filters (vol_z > 0.2, volm_z > 0.3) are already 2-3x looser than backtest (0.5/1.0), yielding estimated ~20 trades/year (vs 9 in backtest). This section outlines the path to 12-22% returns by scaling trade frequency, diversification, and position sizing.
+Current baseline (RSI Phase 3): ~0.5-1% annual return with ultra-conservative approach (single symbol, 0.25% sizing). **Note**: Deployed filters (vol_z > 0.2, volm_z > 0.3) are already 2-3x looser than backtest (0.5/1.0), yielding estimated ~20 trades/year (vs 9 in backtest). This section outlines the path to 12-22% returns by scaling trade frequency, diversification, and position sizing.
 
 ### Implementation Roadmap
 
-#### **Phase 1: Multi-Symbol Expansion** (Week 1-3)
+#### **Growth Phase 1: Multi-Symbol Expansion** (Week 1-3)
 **Goal**: 3-4x trade opportunities through diversification
 
 **Actions**:
@@ -429,7 +435,7 @@ CORRELATION_THRESHOLD = 0.75  # If avg > 0.75, reduce to 1 position
 
 ---
 
-#### **Phase 2: Aggressive Position Sizing** (Week 3-5)
+#### **Growth Phase 2: Aggressive Position Sizing** (Week 3-5)
 **Goal**: 6-8x returns per trade through larger positions
 
 **Actions**:
@@ -461,7 +467,7 @@ max_total_exposure = 0.10  # Never exceed 10% total
 
 ---
 
-#### **Phase 3: Loosen Filters for Higher Frequency** (Week 6-10)
+#### **Growth Phase 3: Loosen Filters for Higher Frequency** (Week 6-10)
 **Goal**: 1.5-2x more trades through relaxed entry criteria
 
 **Current Reality**:
@@ -495,12 +501,12 @@ VOLM_THRESHOLD = 0.2   # vs 0.3 current
 **Validation Gate** (STRICT):
 - Paper trade 2 months, collect 40-60 trades minimum
 - Require: Win rate ≥ 66% AND Sharpe ≥ 0.65 AND Profit Factor ≥ 1.3
-- **If any metric fails**: DO NOT deploy, revert to Phase 2 filters
+- **If any metric fails**: DO NOT deploy, revert to Growth Phase 2 filters
 - **Alternative**: Selective loosening (relax volm_z only, keep vol_z at 0.2)
 
 ---
 
-#### **Phase 4: Add Momentum Strategy** (Month 3-5)
+#### **Growth Phase 4: Add Momentum Strategy** (Month 3-5)
 **Goal**: Diversify signal types (mean-reversion + momentum)
 
 **Rationale**: RSI mean-reversion only captures one market pattern. Add breakout/trend-following for stronger directional moves.
@@ -533,12 +539,12 @@ elif momentum_breakout_signal():
 
 **Validation Gate**:
 - Each momentum pattern must achieve Sharpe > 0.4 standalone
-- Combined strategy Sharpe > Phase 3 Sharpe + 0.2
+- Combined strategy Sharpe > RSI Phase 3 Sharpe + 0.2
 - Max drawdown < 12%
 
 ---
 
-#### **Phase 5: ML Expectancy Model** (Month 4-9)
+#### **Growth Phase 5: ML Expectancy Model** (Month 4-9)
 **Goal**: Improve win rate through trade quality filtering
 
 **Actions**:
@@ -567,39 +573,39 @@ if ml_enabled and ml_expectancy(features) < 5.0:
 
 ### Expected Returns Summary
 
-| Phase | Implementation | Symbols | Position Size | Trades/Year | Win Rate | Annual Return | Risk Level |
-|-------|----------------|---------|---------------|-------------|----------|---------------|------------|
-| **Current** | Complete | 1 | 0.25% | 20 (est) | 70-73% | 0.5-1% | Low |
-| **Phase 1** | Week 1-3 | 5 | 0.25% | 60-80 | 68-72% | 2-4% | Low |
-| **Phase 2** | Week 3-5 | 5 | 2% | 60-80 | 68-72% | 8-12% | Moderate |
-| **Phase 3** | Week 6-10 | 5 | 2% | 100-120 | 66-70% | 12-16% | Mod-High |
-| **Phase 4** | Month 3-5 | 5 | 2% | 150-200 | 60-65% | 16-20% | High |
-| **Phase 5** | Month 6-12 | 5 | 2% | 120-160 | 70-75% | 18-22% | Moderate |
+| Growth Phase | Implementation | Symbols | Position Size | Trades/Year | Win Rate | Annual Return | Risk Level |
+|--------------|----------------|---------|---------------|-------------|----------|---------------|------------|
+| **Baseline (RSI Phase 3)** | Complete | 1 | 0.25% | 20 (est) | 70-73% | 0.5-1% | Low |
+| **Growth Phase 1** | Week 1-3 | 5 | 0.25% | 60-80 | 68-72% | 2-4% | Low |
+| **Growth Phase 2** | Week 3-5 | 5 | 2% | 60-80 | 68-72% | 8-12% | Moderate |
+| **Growth Phase 3** | Week 6-10 | 5 | 2% | 100-120 | 66-70% | 12-16% | Mod-High |
+| **Growth Phase 4** | Month 3-5 | 5 | 2% | 150-200 | 60-65% | 16-20% | High |
+| **Growth Phase 5** | Month 6-12 | 5 | 2% | 120-160 | 70-75% | 18-22% | Moderate |
 
 ### Capital Scaling (Realistic Projections)
 
 **With $2,000 starting capital** (NOT RECOMMENDED - commissions eat profits):
 - Current: $10-20/year
-- After Phase 1: $40-80/year (2-4%) - commission drag significant
-- Phase 2+: NOT VIABLE ($40/trade too small for bracket orders)
+- After Growth Phase 1: $40-80/year (2-4%) - commission drag significant
+- Growth Phase 2+: NOT VIABLE ($40/trade too small for bracket orders)
 
 **With $5,000 starting capital** (MINIMUM for growth strategy):
 - Current: $25-50/year
-- After Phase 1: $100-200/year (2-4%)
-- After Phase 2: $400-600/year (8-12%)
-- After Phase 3: $600-800/year (12-16%)
-- After Phase 4+5: $900-1,100/year (18-22%)
+- After Growth Phase 1: $100-200/year (2-4%)
+- After Growth Phase 2: $400-600/year (8-12%)
+- After Growth Phase 3: $600-800/year (12-16%)
+- After Growth Phase 4+5: $900-1,100/year (18-22%)
 
 **With $10,000 starting capital** (RECOMMENDED):
-- After Phase 1: $200-400/year
-- After Phase 2: $800-1,200/year (8-12%)
-- After Phase 3: $1,200-1,600/year (12-16%)
-- After Phase 4+5: $1,800-2,200/year (18-22%)
+- After Growth Phase 1: $200-400/year
+- After Growth Phase 2: $800-1,200/year (8-12%)
+- After Growth Phase 3: $1,200-1,600/year (12-16%)
+- After Growth Phase 4+5: $1,800-2,200/year (18-22%)
 
 **With $50,000 starting capital** (serious trading):
-- After Phase 2: $4,000-6,000/year
-- After Phase 3: $6,000-8,000/year
-- After Phase 4+5: $9,000-11,000/year
+- After Growth Phase 2: $4,000-6,000/year
+- After Growth Phase 3: $6,000-8,000/year
+- After Growth Phase 4+5: $9,000-11,000/year
 
 **Reality Check**: These assume:
 - All phases validate successfully (50-60% chance based on backtest difficulty)
@@ -625,10 +631,10 @@ if ml_enabled and ml_expectancy(features) < 5.0:
 - Monthly: -10% → revert to Phase 1 (multi-symbol only, 0.25% sizing)
 
 **Validation Gates**:
-- Phase 1→2: Verify 20+ trades, Sharpe ≥ 0.8
-- Phase 2→3: Verify 30+ trades, win rate ≥ 65%
-- Phase 3→4: Verify 50+ trades, max drawdown < 8%
-- Phase 4→5: Verify 100+ trades, ML out-of-sample Sharpe > baseline + 0.3
+- Growth Phase 1→2: Verify 20+ trades, Sharpe ≥ 0.8
+- Growth Phase 2→3: Verify 30+ trades, win rate ≥ 65%
+- Growth Phase 3→4: Verify 50+ trades, max drawdown < 8%
+- Growth Phase 4→5: Verify 100+ trades, ML out-of-sample Sharpe > baseline + 0.3
 
 ### Quick Start (Next 2 Weeks)
 
@@ -643,7 +649,7 @@ if ml_enabled and ml_expectancy(features) < 5.0:
    - Verify bracket orders work correctly across all symbols
    - Check correlation (max 2 concurrent positions)
    
-3. **Day 8**: Go/No-Go for Phase 2
+3. **Day 8**: Go/No-Go for Growth Phase 2
    - If multi-symbol Sharpe ≥ 0.8 → increase to 2% sizing
    - If Sharpe < 0.6 → investigate, keep 0.25% sizing
 
@@ -651,25 +657,25 @@ if ml_enabled and ml_expectancy(features) < 5.0:
    - Monitor drawdown closely (should be < 3%)
    - Collect 10-15 trades
 
-5. **Day 15+**: If stable, begin Phase 3 filter testing
+5. **Day 15+**: If stable, begin Growth Phase 3 filter testing
 
 ### Long-Term Target (12 Months)
 
-**Conservative Case** (Phases 1-2 only) - 70% probability:
+**Conservative Case** (Growth Phases 1-2 only) - 70% probability:
 - Annual return: 8-12%
 - Max drawdown: 5-8%
 - Win rate: 68-72%
 - **With $10K**: $800-1,200/year
 - **Risk**: Low-Moderate (proven strategy, just scaled up)
 
-**Moderate Case** (Phases 1-3) - 40% probability:
+**Moderate Case** (Growth Phases 1-3) - 40% probability:
 - Annual return: 12-16%
 - Max drawdown: 8-12%
 - Win rate: 66-70%
 - **With $10K**: $1,200-1,600/year
 - **Risk**: Moderate-High (filter loosening is unproven, could backfire)
 
-**Aggressive Case** (Phases 1-5, all successful) - 20% probability:
+**Aggressive Case** (Growth Phases 1-5, all successful) - 20% probability:
 - Annual return: 18-22%
 - Max drawdown: 12-18%
 - Win rate: 70-75% (with ML)
@@ -677,30 +683,30 @@ if ml_enabled and ml_expectancy(features) < 5.0:
 - **Risk**: High (momentum + ML both unproven, 6+ month development)
 
 **Most Likely Outcome** (pragmatic estimate):
-- Phases 1-2 succeed: 8-12% annual return
-- Phase 3 fails validation: Stick with Phase 2
-- Phases 4-5 never attempted: Too time-intensive
+- Growth Phases 1-2 succeed: 8-12% annual return
+- Growth Phase 3 fails validation: Stick with Growth Phase 2
+- Growth Phases 4-5 never attempted: Too time-intensive
 - **Realistic 12-month result**: $800-1,200/year on $10K (8-12%)
 
 ### Failure Modes & Fallback
 
-**If Phase 2 fails** (2% sizing → excessive drawdown):
+**If Growth Phase 2 fails** (2% sizing → excessive drawdown):
 - Fallback: 1% sizing (50% reduction)
 - Expected return: 5-6% (still 5x better than current)
 
-**If Phase 3 fails** (looser filters → win rate collapse):
+**If Growth Phase 3 fails** (looser filters → win rate collapse):
 - Fallback: Keep strict filters (vol_z > 0.2, volm_z > 0.3)
-- Expected return: 10-12% (Phase 1+2 only)
+- Expected return: 10-12% (Growth Phase 1+2 only)
 
-**If Phase 4 fails** (momentum strategy loses money):
+**If Growth Phase 4 fails** (momentum strategy loses money):
 - Abandon momentum, stick with mean-reversion only
-- Expected return: 15-20% (Phase 1-3)
+- Expected return: 15-20% (Growth Phase 1-3)
 
-**If Phase 5 fails** (ML no improvement):
+**If Growth Phase 5 fails** (ML no improvement):
 - Already documented in BACKLOG (abandon ML research)
-- Expected return: 20-25% (Phase 1-4)
+- Expected return: 20-25% (Growth Phase 1-4)
 
-**Nuclear Option**: If cumulative drawdown > 20%, revert to Phase 1 baseline (single symbol, 0.25% sizing, strict filters). Rebuild confidence with 50+ profitable trades before retrying.
+**Nuclear Option**: If cumulative drawdown > 20%, revert to Growth Phase 1 baseline (single symbol, 0.25% sizing, strict filters). Rebuild confidence with 50+ profitable trades before retrying.
 
 ---
 
@@ -713,5 +719,5 @@ if ml_enabled and ml_expectancy(features) < 5.0:
 
 ---
 
-**Last updated**: 2025-12-19  
+**Last updated**: 2025-12-22  
 **Next review**: Weekly (Fridays)
