@@ -3,7 +3,9 @@
 **This document is the source of truth for the trading system.** Keep it minimal, robust, and testable.
 
 ## Goal
-Build a reliable, low-maintenance trading bot that predicts whether the next 60 minutes will move enough (after costs) to justify a trade, sizes positions by confidence, and obeys strict risk limits.
+Build a reliable, low-maintenance trading bot using RSI mean-reversion with proven filters (time-of-day, volatility, volume, trend) that captures oversold bounces while obeying strict risk limits.
+
+**Current Approach**: Rule-based RSI strategy (Sharpe 0.80, 72.7% win rate) with fixed position sizing. Brain ensemble abandoned (AUC 0.50-0.52, no edge).
 
 ## Key Non-Negotiables
 - **Single symbol TSLA** (start), then expand to small basket (AAPL, MSFT, SPY)
@@ -28,25 +30,34 @@ Build a reliable, low-maintenance trading bot that predicts whether the next 60 
 - Indicators: RSI(14), EMA(20/50/200) + slopes, MACD(12,26,9) + histogram, ATR(14), Bollinger z-score(20,2)
 - Regime: realized volatility (last 24 bars), time-of-day, day-of-week
 
-## Models (stacked ensemble)
-### Level-1 experts (tiny, robust)
-- RSI expert → probability of positive 60-min return using RSI + z-score + slope
-- MACD expert → using MACD, signal, histogram, slope
-- Trend expert → using EMA(20/50/200), crossovers, slopes
-- (Add a Volatility expert later)
+## Strategy (Current: RSI Mean-Reversion)
+**Active Strategy**: Rule-based RSI with 8 filters (Phase 1+2+3)
+- Entry: RSI(14) < dynamic threshold (20-30 based on volatility)
+- Exit: RSI(14) > 75 or trailing stop (1.5 ATR)
+- Filters: time-of-day, volatility z-score, volume z-score, trend (EMA200), Bollinger Bands, multi-timeframe RSI
 
-### Level-2 brain (meta-model)
-- Logistic regression (initially) combining expert probabilities + 2 regime features (volatility, time-of-day).
-- Output is final probability `p ∈ [0,1]`.
+**Archived: Brain Ensemble** (preserved in `ensemble/`, `experts/`, `models/` for future research)
+- Level-1 experts: RSI, MACD, Trend (AUC 0.50-0.52 individually)
+- Level-2 brain: Logistic regression meta-model (AUC 0.50-0.52)
+- **Status**: Abandoned Dec 2025 - no edge over RSI baseline
+- **Future**: May revisit for Growth Phase 5 ML expectancy filter (2027+)
 
 ## Decision & Sizing
+**Current (RSI Phase 3)**:
+- Entry: RSI < dynamic threshold AND all 8 filters pass
+- Position size: Fixed 0.25% equity cap (ultra-conservative)
+- Orders: Bracket orders (1.5 ATR stop-loss, 2 ATR take-profit)
+- Trailing stop: 1.5 ATR trail when profitable (Phase 3.1)
+- Minimum hold: 30 minutes to reduce churn
+
+**Archived (Brain approach)**:
 - Trade only if `|p - 0.5| ≥ 0.05` (minimum edge)
-- Position size: volatility-scaled (ATR-based), capped at 1% of equity per position
-- Orders: bracket (stop-loss and take-profit); minimum hold 15 minutes to reduce churn
+- Position size: Volatility-scaled (ATR-based), capped at 1% equity
 
 ## Risk (hard stops)
 - Daily stop: -1% of equity → go flat, stop trading for the day
-- Max concurrent positions: 1 (Week 1–2), later 3
+- Max concurrent positions: 1 (current), 2-3 for multi-symbol expansion (Growth Phase 1+)
+- Position cap: 0.25% equity per trade (current), 2% for aggressive growth strategy
 - Kill-switch: any data/model/broker error → flatten and pause
 
 ## Backtesting
@@ -58,35 +69,32 @@ Build a reliable, low-maintenance trading bot that predicts whether the next 60 
 - Backtest → Paper (1–2 weeks) → tiny Live only after stability
 - One-button rollback to last good version
 
-## Repo / Project Layout (conceptual; QC can keep most in one file)
+## Repo / Project Layout
+**Current (RSI Strategy)**:
 ```
-/docs/
-  PROJECT_BRIEF.md
-  NOTES.md                    # running diary: decisions, why, results
+/docs/                        # Documentation (source of truth: PROJECT_BRIEF.md)
+/scripts/
+  alpaca_rsi_bot.py           # Production bot (Phase 1+2+3) - ACTIVE
+  analyze_recent_trades.py    # Performance analysis
+  daily_health_check.ps1      # Automated monitoring
 /features/
-  feature_builder.py          # build indicator & regime features
-/experts/
-  rsi_expert.py               # load + predict_proba(features)
-  macd_expert.py
-  trend_expert.py
-/ensemble/
-  brain.py                    # load brain model; blend expert outputs + regime
+  feature_builder.py          # Indicator & regime features (for QC backtests)
 /risk/
-  position_sizing.py          # prob->size (ATR scale, caps)
-  guards.py                   # daily stop, kill-switch checks
-/models/
-  rsi_expert.json             # saved tiny models (or .pkl)
-  macd_expert.json
-  trend_expert.json
-  brain.pkl
-/tests/
-  test_features.py
-  test_rsi_expert.py
-  test_position_sizing.py
-algo.py                       # QuantConnect main algorithm (wires it all)
+  position_sizing.py          # ATR-based sizing (archived brain approach)
+  guards.py                   # Daily stop, kill-switch checks (used in QC backtests)
+/ml/
+  shadow.py                   # Shadow ML logging (Phase 4, disabled by default)
+algo.py                       # QuantConnect backtest algorithm (Phase 1+2 reference)
 ```
 
-On QuantConnect you can keep helpers inside `algo.py` to start. Upload the model files to QC Object Store and load them in `Initialize()`.
+**Archived (Brain Ensemble)** - preserved for future research:
+```
+/experts/                     # Level-1 expert models (rsi_expert.py, macd_expert.py, trend_expert.py)
+/ensemble/                    # Level-2 brain meta-model (brain.py)
+/models/                      # Trained model JSONs (brain.json, *_expert.json)
+```
+
+On QuantConnect: Use `algo.py` for backtests only. Upload model files to QC Object Store if needed for research.
 
 ## Current status (Dec 2025)
 - **Phase 1+2+3 Deployed** (2025-12-18):
