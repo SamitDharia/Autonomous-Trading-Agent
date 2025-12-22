@@ -1,3 +1,13 @@
+⚠️ **DEPRECATED - December 2025**
+
+This document describes the brain ensemble approach, which has been **abandoned** as of December 2025.
+- **Reason**: Brain AUC remained at 0.50-0.52 (no better than random) across all tuning attempts
+- **Current Champion**: RSI baseline (no ML) with Sharpe 0.80, win rate 72.7%
+- **Archived**: For historical reference only
+- **Active Documentation**: See docs/PROJECT_BRIEF.md and docs/BACKLOG.md for current approach
+
+---
+
 # Training the experts and brain (QC Research notebook)
 
 Use QuantConnect only for research/retraining; keep live/paper local. This notebook flow lets you retrain and then copy the JSONs into your local `models/` folder.

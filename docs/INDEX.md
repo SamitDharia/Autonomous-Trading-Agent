@@ -21,6 +21,7 @@ Read in this order:
   - **Current status**: Phase 1+2+3 deployed to paper trading (PID 46592)
   - **Phase 3.1**: ATR-based trailing stops (1.5 ATR, only when profitable)
   - **Phase 3.2**: Multi-timeframe RSI filter (15-min RSI < 50 confirmation)
+  - **Maximum Returns Path**: See BACKLOG.md for 5-phase growth roadmap (12-22% targets)
 
 - **[DEPLOYMENT.md](../DEPLOYMENT.md)** — Local deployment guide
   - Alpaca paper trading setup
@@ -65,6 +66,15 @@ Read in this order:
   - Run paper trading
   - Common issues & fixes
 
+### Operations
+- **[DAILY_MONITORING.md](DAILY_MONITORING.md)** — Daily monitoring guide (NEW)
+  - Quick health check commands
+  - Manual monitoring queries
+  - Troubleshooting reference
+  - Timeline expectations (holidays, validation windows)
+  - Analysis tools (analyze_recent_trades.py)
+  - Automated script: scripts/daily_health_check.ps1
+
 ### Development
 - **[DEVELOPMENT_LOG.md](DEVELOPMENT_LOG.md)** — Dated entries for decisions and results
   - Latest: 2025-12-18 Week 6 (cloud deployment, ML infrastructure, Phase 3 planning)
@@ -82,13 +92,21 @@ Read in this order:
   - 🔴 High: Paper trading monitoring (Week 6 focus)
   - 🟡 Medium: Drift monitor, alert system, analytics
   - 🟢 Low: Phase 3 enhancements, multi-symbol, regime filters
+  - **Maximum Returns Path**: 5-phase roadmap targeting 12-22% annual returns (2026-2027)
 
 ### Reference
-- **[TRAINING.md](TRAINING.md)** — Brain training code (archived, H=24 configuration)
+- **[TRAINING.md](archive/TRAINING.md)** — Brain training code (ARCHIVED, brain ensemble abandoned)
 - **[ARCHITECTURE.md](ARCHITECTURE.md)** — System architecture (current RSI baseline + legacy ensemble)
 
 ### Archive
-- **[ARCHIVE/](ARCHIVE/)** — Deprecated/historical docs
+- **[archive/](archive/)** — Deprecated documentation
+  - TRAINING.md (Brain ensemble training guide - deprecated Dec 2025)
+  
+- **[SESSION_HANDOFFS/](SESSION_HANDOFFS/)** — Session logs (ephemeral)
+  - 2025-12-19.md (Phase 3 deployment validation)
+  - 2025-12-22.md (Maximum Returns Path, daily monitoring, doc cleanup)
+  
+- **[ARCHIVE/](ARCHIVE/)** — Historical cleanup docs
   - REVIEW_deprecated.md (pre-cleanup repository audit)
   - BOT_SPEC_deprecated.md
   - CLEANUP_2025-12.md
@@ -159,4 +177,4 @@ pytest tests/ -v
 
 ---
 
-**Last updated**: 2025-12-19
+**Last updated**: 2025-12-22
