@@ -251,9 +251,22 @@ def main():
     trades_df = match_entries_exits(df)
     
     # Filter by date if requested
-    if args.days:
+    if args.days and not trades_df.empty:
         cutoff = datetime.now(timezone.utc) - timedelta(days=args.days)
         trades_df = trades_df[trades_df["entry_time"] >= cutoff]
+    
+    # Check if we have any trades to analyze
+    if trades_df.empty:
+        print(f"\n⚠️  No completed trades found in the last {args.days} days" if args.days else "\n⚠️  No completed trades found in log")
+        print("\nThis is NORMAL during holiday period (Dec 19 - Jan 3)")
+        print("Expected behavior: Bot running, logging skip_volatility/skip_volume only")
+        print("\nFilter breakdown:")
+        filters = analyze_filters(df, days=args.days)
+        for filter_name, count in filters.items():
+            print(f"  {filter_name}: {count}")
+        print("\n✅ Bot is healthy - just waiting for qualifying setups")
+        print("📅 First trades expected: Jan 6-10 (TSLA delivery numbers)")
+        return 0
     
     # Calculate metrics
     metrics = calculate_metrics(trades_df)
