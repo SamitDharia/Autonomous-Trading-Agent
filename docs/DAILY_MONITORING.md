@@ -137,15 +137,15 @@ ssh root@138.68.150.144 "cd ~/Autonomous-Trading-Agent && tail -1 alpaca_rsi_log
 
 ## Analysis Commands (After 5+ Trades)
 
-```bash
+```powershell
 # 1. Download latest logs (ALWAYS DO THIS FIRST):
 scp root@138.68.150.144:/root/Autonomous-Trading-Agent/alpaca_rsi_log.csv alpaca_rsi_log.csv
 
 # 2. Run local analysis:
 python scripts/analyze_recent_trades.py --days 30
 
-# 3. Check Phase 3 activity counts:
-grep 'trail_update\|skip_multi_tf' alpaca_rsi_log.csv | wc -l
+# 3. Check Phase 3 activity counts (PowerShell):
+(Select-String 'trail_update|skip_multi_tf' alpaca_rsi_log.csv).Count
 ```
 
 **Important**: The log file on the droplet is continuously updated, but your local copy is stale. Always sync logs before analysis.
